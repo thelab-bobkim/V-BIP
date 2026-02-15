@@ -1,0 +1,117 @@
+version: '3.8'
+
+services:
+  # PostgreSQL 데이터베이스
+  postgres:
+    image: postgres:14-alpine
+    container_name: vbip-postgres
+    environment:
+      POSTGRES_DB: veritas_monitor
+      POSTGRES_USER: vbip_user
+      POSTGRES_PASSWORD: vbip_password_2026
+      TZ: Asia/Seoul
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vbip_user -d veritas_monitor"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - vbip-network
+
+  # Flask API 서버
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: vbip-api
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: veritas_monitor
+      DB_USER: vbip_user
+      DB_PASSWORD: vbip_password_2026
+      FLASK_ENV: production
+      TZ: Asia/Seoul
+    volumes:
+      - ./scripts:/app/scripts
+      - ./uploads:/app/uploads
+      - ./sample_logs:/app/sample_logs:ro
+    ports:
+      - "5001:5000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - vbip-network
+
+  # Flask 대시보드
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile.dashboard
+    container_name: vbip-dashboard
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: veritas_monitor
+      DB_USER: vbip_user
+      DB_PASSWORD: vbip_password_2026
+      FLASK_ENV: production
+      TZ: Asia/Seoul
+    volumes:
+      - ./dashboard:/app/dashboard
+      - ./static:/app/static
+      - ./templates:/app/templates
+    ports:
+      - "5000:5000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - vbip-network
+
+  # n8n 워크플로우 자동화 (선택적)
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: vbip-n8n
+    environment:
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: postgres
+      DB_POSTGRESDB_PORT: 5432
+      DB_POSTGRESDB_DATABASE: n8n_db
+      DB_POSTGRESDB_USER: vbip_user
+      DB_POSTGRESDB_PASSWORD: vbip_password_2026
+      N8N_BASIC_AUTH_ACTIVE: "true"
+      N8N_BASIC_AUTH_USER: admin
+      N8N_BASIC_AUTH_PASSWORD: vbip_admin_2026
+      GENERIC_TIMEZONE: Asia/Seoul
+      TZ: Asia/Seoul
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./n8n_workflows:/home/node/workflows:ro
+    ports:
+      - "5678:5678"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - vbip-network
+
+volumes:
+  postgres_data:
+    driver: local
+  n8n_data:
+    driver: local
+
+networks:
+  vbip-network:
+    driver: bridge
