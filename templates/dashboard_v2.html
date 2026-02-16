@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>V-BIP Dashboard v2 | 디에스티인터내셔널</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header h1 {
+            font-size: 1.8rem;
+            margin-bottom: 0.3rem;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 0.95rem;
+        }
+        
+        .last-updated {
+            font-size: 0.85rem;
+            opacity: 0.8;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .filters {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .filter-group label {
+            font-size: 0.85rem;
+            color: #666;
+            font-weight: 600;
+        }
+        
+        .filter-group select {
+            padding: 0.6rem 1rem;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            background: white;
+            cursor: pointer;
+            min-width: 150px;
+        }
+        
+        .filter-group select:hover {
+            border-color: #667eea;
+        }
+        
+        .btn-export {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+            padding: 0.6rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.95rem;
+            margin-left: auto;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .btn-export:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+        
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+        }
+        
+        .card-title {
+            font-size: 0.85rem;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.5rem;
+        }
+        
+        .card-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        
+        .card-value.success { color: #10b981; }
+        .card-value.failed { color: #ef4444; }
+        .card-value.warning { color: #f59e0b; }
+        .card-value.info { color: #3b82f6; }
+        
+        .section {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        
+        .section-title {
+            font-size: 1.3rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-top: 1rem;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        
+        thead {
+            background: #f9fafb;
+        }
+        
+        th {
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: #374151;
+            border-bottom: 2px solid #e5e7eb;
+            font-size: 0.9rem;
+        }
+        
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid #e5e7eb;
+            font-size: 0.9rem;
+        }
+        
+        tbody tr:hover {
+            background: #f9fafb;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 0.3rem 0.8rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        .status-badge.success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .status-badge.failed {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .status-badge.warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .tier-platinum { color: #3b82f6; font-weight: 600; }
+        .tier-gold { color: #f59e0b; font-weight: 600; }
+        .tier-silver { color: #6b7280; font-weight: 600; }
+        .tier-bronze { color: #92400e; font-weight: 600; }
+        
+        .btn-detail {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: background 0.2s;
+        }
+        
+        .btn-detail:hover {
+            background: #5568d3;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: #6b7280;
+        }
+        
+        .spinner {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #9ca3af;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <div>
+                <h1>🚀 V-BIP Dashboard v2</h1>
+                <p>Veritas Backup Intelligence Platform | 디에스티인터내셔널</p>
+            </div>
+            <div class="last-updated" id="lastUpdated">
+                최종 업데이트: --
+            </div>
+        </div>
+    </div>
+    
+    <div class="container">
+        <!-- 필터 영역 -->
+        <div class="filters">
+            <div class="filter-group">
+                <label for="periodFilter">📅 조회 기간</label>
+                <select id="periodFilter">
+                    <option value="">전체 기간</option>
+                    <option value="7">최근 7일</option>
+                    <option value="30" selected>최근 30일</option>
+                    <option value="90">최근 3개월</option>
+                    <option value="180">최근 6개월</option>
+                    <option value="365">최근 1년</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label for="engineerFilter">👷 담당 엔지니어</label>
+                <select id="engineerFilter">
+                    <option value="">전체 엔지니어</option>
+                </select>
+            </div>
+            
+            <button class="btn-export" onclick="exportToExcel()">
+                📊 Excel 다운로드
+            </button>
+        </div>
+        
+        <!-- 요약 카드 -->
+        <div class="summary-cards">
+            <div class="card">
+                <div class="card-title">총 고객사</div>
+                <div class="card-value info" id="totalCustomers">-</div>
+                <div style="font-size: 0.85rem; color: #6b7280;">Active 고객사</div>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">성공한 백업</div>
+                <div class="card-value success" id="successCount">-</div>
+                <div style="font-size: 0.85rem; color: #6b7280;">정상 완료</div>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">실패한 백업</div>
+                <div class="card-value failed" id="failedCount">-</div>
+                <div style="font-size: 0.85rem; color: #6b7280;">장애 발생</div>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">경고 백업</div>
+                <div class="card-value warning" id="warningCount">-</div>
+                <div style="font-size: 0.85rem; color: #6b7280;">주의 필요</div>
+            </div>
+        </div>
+        
+        <!-- 차트 영역 -->
+        <div class="section">
+            <div class="section-title">📈 백업 성공률 추이 (최근 7일)</div>
+            <div class="chart-container">
+                <canvas id="trendChart"></canvas>
+            </div>
+        </div>
+        
+        <!-- 고객사 목록 -->
+        <div class="section">
+            <div class="section-title">📋 고객사 목록 및 장애 현황</div>
+            <div id="customerTableContainer">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <div>데이터를 불러오는 중...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let chart = null;
+        let currentFilters = {
+            days: 30,
+            engineer_id: null
+        };
+        
+        // 페이지 로드 시 초기화
+        document.addEventListener('DOMContentLoaded', function() {
+            loadEngineers();
+            loadDashboard();
+            
+            // 필터 변경 이벤트
+            document.getElementById('periodFilter').addEventListener('change', function() {
+                currentFilters.days = this.value ? parseInt(this.value) : null;
+                loadDashboard();
+            });
+            
+            document.getElementById('engineerFilter').addEventListener('change', function() {
+                currentFilters.engineer_id = this.value ? parseInt(this.value) : null;
+                loadDashboard();
+            });
+        });
+        
+        // 엔지니어 목록 로드
+        async function loadEngineers() {
+            try {
+                const response = await fetch('/api/engineers');
+                const engineers = await response.json();
+                
+                const select = document.getElementById('engineerFilter');
+                engineers.forEach(eng => {
+                    const option = document.createElement('option');
+                    option.value = eng.engineer_id;
+                    option.textContent = `${eng.name} (${eng.specialization || ''})`;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('엔지니어 목록 로드 실패:', error);
+            }
+        }
+        
+        // 대시보드 데이터 로드
+        async function loadDashboard() {
+            try {
+                // URL 파라미터 구성
+                const params = new URLSearchParams();
+                if (currentFilters.days) params.append('days', currentFilters.days);
+                if (currentFilters.engineer_id) params.append('engineer_id', currentFilters.engineer_id);
+                
+                // 요약 정보 로드
+                const summaryResponse = await fetch(`/api/dashboard/summary?${params}`);
+                const summary = await summaryResponse.json();
+                
+                // 요약 카드 업데이트
+                document.getElementById('totalCustomers').textContent = summary.total_customers;
+                document.getElementById('successCount').textContent = summary.backup_status.success;
+                document.getElementById('failedCount').textContent = summary.backup_status.failed;
+                document.getElementById('warningCount').textContent = summary.backup_status.warning;
+                
+                // 차트 업데이트
+                updateChart(summary.trend_data);
+                
+                // 고객사 목록 로드
+                const customersResponse = await fetch(`/api/customers?${params}`);
+                const customers = await customersResponse.json();
+                
+                displayCustomers(customers);
+                
+                // 최종 업데이트 시간
+                document.getElementById('lastUpdated').textContent = 
+                    `최종 업데이트: ${new Date().toLocaleString('ko-KR')}`;
+                
+            } catch (error) {
+                console.error('대시보드 로드 실패:', error);
+                document.getElementById('customerTableContainer').innerHTML = 
+                    '<div class="empty-state">❌ 데이터를 불러오는데 실패했습니다.</div>';
+            }
+        }
+        
+        // 차트 업데이트
+        function updateChart(trendData) {
+            const ctx = document.getElementById('trendChart');
+            
+            if (chart) {
+                chart.destroy();
+            }
+            
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: trendData.map(d => d.date),
+                    datasets: [{
+                        label: '성공률 (%)',
+                        data: trendData.map(d => parseFloat(d.success_rate)),
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 5,
+                        pointHoverRadius: 7
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `성공률: ${context.parsed.y}%`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 고객사 목록 표시
+        function displayCustomers(customers) {
+            const container = document.getElementById('customerTableContainer');
+            
+            if (customers.length === 0) {
+                container.innerHTML = '<div class="empty-state">📭 해당 조건의 고객사가 없습니다.</div>';
+                return;
+            }
+            
+            let html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>고객사명</th>
+                            <th>등급</th>
+                            <th>담당 엔지니어</th>
+                            <th>서버 수</th>
+                            <th>총 작업</th>
+                            <th>실패 건수</th>
+                            <th>성공 건수</th>
+                            <th>성공률</th>
+                            <th>최근 장애일</th>
+                            <th>상세</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            customers.forEach(customer => {
+                const successRate = customer.total_jobs > 0 
+                    ? ((customer.success_jobs / customer.total_jobs) * 100).toFixed(1) 
+                    : 0;
+                
+                const tierClass = `tier-${customer.contract_tier.toLowerCase()}`;
+                const lastFailure = customer.last_failed_backup || '-';
+                
+                html += `
+                    <tr>
+                        <td><strong>${customer.customer_name}</strong><br>
+                            <small style="color: #9ca3af;">${customer.customer_code}</small>
+                        </td>
+                        <td><span class="${tierClass}">${customer.contract_tier}</span></td>
+                        <td>${customer.engineer_name || '-'}</td>
+                        <td style="text-align: center;">${customer.server_count}</td>
+                        <td style="text-align: center;">${customer.total_jobs}</td>
+                        <td style="text-align: center;">
+                            ${customer.failed_jobs > 0 
+                                ? `<span class="status-badge failed">${customer.failed_jobs}건</span>` 
+                                : '-'}
+                        </td>
+                        <td style="text-align: center;">
+                            ${customer.success_jobs > 0 
+                                ? `<span class="status-badge success">${customer.success_jobs}건</span>` 
+                                : '-'}
+                        </td>
+                        <td style="text-align: center;">${successRate}%</td>
+                        <td>${lastFailure}</td>
+                        <td style="text-align: center;">
+                            <button class="btn-detail" onclick="viewDetail(${customer.customer_id})">
+                                상세 보기
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+        
+        // 상세 페이지 이동
+        function viewDetail(customerId) {
+            window.location.href = `/customer/${customerId}`;
+        }
+        
+        // Excel 내보내기
+        async function exportToExcel() {
+            try {
+                const params = new URLSearchParams();
+                if (currentFilters.days) params.append('days', currentFilters.days);
+                if (currentFilters.engineer_id) params.append('engineer_id', currentFilters.engineer_id);
+                
+                window.location.href = `/api/export/excel?${params}`;
+            } catch (error) {
+                alert('Excel 다운로드에 실패했습니다: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>
