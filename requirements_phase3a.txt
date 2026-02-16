@@ -1,0 +1,16 @@
+# V-BIP Phase 3-A: Email Automation Requirements
+
+# 기존 requirements (Phase 2-A)
+Flask==3.0.0
+psycopg2-binary==2.9.9
+xlsxwriter==3.1.9
+
+# Phase 3-A 새로 추가
+pandas==2.1.4
+openpyxl==3.1.2
+requests==2.31.0
+python-dotenv==1.0.0
+APScheduler==3.10.4
+
+# 선택적 (AI 진단 기능 사용 시)
+# openai==1.3.0

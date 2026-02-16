@@ -1,0 +1,36 @@
+[Unit]
+Description=V-BIP Email Automation Service
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/V-BIP/email_automation
+Environment="PYTHONUNBUFFERED=1"
+EnvironmentFile=/home/ubuntu/V-BIP/email_automation/.env
+
+ExecStart=/usr/bin/python3 /home/ubuntu/V-BIP/email_automation/main.py
+
+# 재시작 정책
+Restart=on-failure
+RestartSec=30
+StartLimitInterval=200
+StartLimitBurst=5
+
+# 리소스 제한
+MemoryLimit=512M
+CPUQuota=50%
+
+# 로그
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=vbip-email-automation
+
+# 보안 설정
+PrivateTmp=true
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
