@@ -1,0 +1,27 @@
+# Phase 4: Auto Recovery System Requirements
+
+# Phase 3-B Dependencies (공유)
+openai==1.12.0
+python-dotenv==1.0.1
+loguru==0.7.2
+
+# SSH & Remote Execution
+paramiko==3.4.0
+scp==0.14.5
+
+# JSON & Data Processing
+pydantic==2.6.1
+
+# Retry & Error Handling
+tenacity==8.2.3
+
+# HTTP (Slack Interactive)
+requests==2.31.0
+httpx==0.26.0
+
+# Database (Phase 3-A 공유)
+psycopg2-binary==2.9.9
+
+# Testing
+pytest==8.0.0
+pytest-asyncio==0.23.4
