@@ -148,7 +148,7 @@ SCHEDULER_CONFIG = {
 # ======================
 LOGGING_CONFIG = {
     'level': os.getenv('LOG_LEVEL', 'INFO'),
-    'log_file': '/var/log/vbip/email_automation.log',
+    'log_file': './logs/email_automation.log',
     'max_bytes': 10 * 1024 * 1024,  # 10MB
     'backup_count': 5,
     'format': '%(asctime)s - %(name)s - %(levelname)s - %(message)s'

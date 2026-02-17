@@ -1,3 +1,5 @@
+from loguru import logger
+from datetime import datetime
 """
 V-BIP Phase 3-B: Knowledge Base Builder
 PDF 문서에서 Vector Database 구축
@@ -197,7 +199,7 @@ class KnowledgeBaseBuilder:
     def save_statistics(self, pdf_paths: List[str], documents: List[Dict], chunks: List[Dict]):
         """지식 베이스 통계 저장"""
         stats = {
-            'build_date': str(Path.ctime(Path.cwd())),
+            'build_date': datetime.now().isoformat(),
             'total_pdfs': len(pdf_paths),
             'pdf_files': [os.path.basename(p) for p in pdf_paths],
             'total_pages': len(documents),

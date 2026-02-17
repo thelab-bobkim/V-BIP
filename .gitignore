@@ -35,3 +35,30 @@ env/
 
 # Docker volumes
 docker-compose.override.yml
+
+
+
+# V-BIP 2.1 임시 파일
+
+*.backup
+
+*.backup.*
+
+**/chroma_db/
+
+**/knowledge_base/*.pdf
+
+test_*.py
+
+debug_*.py
+
+fix_*.py
+
+add_*.py
+
+update_*.py
+
+extract_error_codes.py
+
+extract_error_codes_v2.py
+
