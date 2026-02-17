@@ -4,6 +4,7 @@ AI 진단 시스템 설정
 """
 
 import os
+from error_codes import ERROR_CODE_MAP
 from typing import Dict, List
 from dotenv import load_dotenv
 
@@ -15,6 +16,8 @@ class AIConfig:
     # ============================================
     # OpenAI Configuration
     # ============================================
+    ERROR_CODE_MAP = ERROR_CODE_MAP  # From error_codes.py
+
     OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', '')
     OPENAI_MODEL = os.getenv('OPENAI_MODEL', 'gpt-4-turbo-preview')
     OPENAI_TEMPERATURE = float(os.getenv('OPENAI_TEMPERATURE', '0.3'))
@@ -90,128 +93,7 @@ class AIConfig:
     # ============================================
     # Error Code Mapping (From Troubleshooting Guide)
     # ============================================
-    ERROR_CODE_MAP = {
-        '13': {
-            'name': 'File read failed',
-            'category': 'File I/O',
-            'common_causes': [
-                'Network connection lost',
-                'File permissions issue',
-                'Socket read timeout'
-            ],
-            'automation_level': 'LEVEL_1',
-            'typical_solutions': [
-                'Restart nbpem service',
-                'Check network connectivity',
-                'Verify file permissions'
-            ]
-        },
-        '48': {
-            'name': 'Client host name not found',
-            'category': 'Network/DNS',
-            'common_causes': [
-                'DNS resolution failure',
-                'Host not in DNS',
-                'Network unreachable'
-            ],
-            'automation_level': 'LEVEL_2',
-            'typical_solutions': [
-                'Verify DNS configuration',
-                'Check /etc/hosts',
-                'Test network connectivity (NBDNA)'
-            ]
-        },
-        '83': {
-            'name': 'Media open error',
-            'category': 'Media/Storage',
-            'common_causes': [
-                'Drive not ready',
-                'Media not loaded',
-                'Hardware failure'
-            ],
-            'automation_level': 'LEVEL_2',
-            'typical_solutions': [
-                'Check drive status',
-                'Rescan storage devices',
-                'Verify media is loaded'
-            ]
-        },
-        '84': {
-            'name': 'Media write error',
-            'category': 'Media/Storage',
-            'common_causes': [
-                'Drive write failure',
-                'Media full or damaged',
-                'Hardware malfunction'
-            ],
-            'automation_level': 'LEVEL_2',
-            'typical_solutions': [
-                'Check drive health',
-                'Verify media capacity',
-                'Reset tape drive'
-            ]
-        },
-        '89': {
-            'name': 'Shared memory segment error',
-            'category': 'System/Memory',
-            'common_causes': [
-                'Shared memory full',
-                'IPC resource exhaustion',
-                'Process crash residue'
-            ],
-            'automation_level': 'LEVEL_1',
-            'typical_solutions': [
-                'Clean shared memory (ipcrm)',
-                'Restart NetBackup services',
-                'Check system resources'
-            ]
-        },
-        '213': {
-            'name': 'No storage units available',
-            'category': 'Configuration',
-            'common_causes': [
-                'All storage units busy',
-                'Storage unit misconfigured',
-                'Resource allocation issue'
-            ],
-            'automation_level': 'LEVEL_2',
-            'typical_solutions': [
-                'Check storage unit status',
-                'Reconfigure storage pools',
-                'Verify resource allocation'
-            ]
-        },
-        '242': {
-            'name': 'Duplicate entry',
-            'category': 'Catalog/Database',
-            'common_causes': [
-                'Catalog corruption',
-                'Database inconsistency',
-                'Duplicate backup image'
-            ],
-            'automation_level': 'LEVEL_1',
-            'typical_solutions': [
-                'Run catalog consistency check',
-                'Clean duplicate entries (bpexpdate)',
-                'Verify catalog integrity'
-            ]
-        },
-        '1500': {
-            'name': 'Invalid storage unit',
-            'category': 'Configuration',
-            'common_causes': [
-                'Storage unit not properly configured',
-                'Path or device invalid',
-                'Configuration mismatch'
-            ],
-            'automation_level': 'LEVEL_3',
-            'typical_solutions': [
-                'Reconfigure storage unit',
-                'Verify device paths',
-                'Check configuration consistency'
-            ]
-        }
-    }
+    # ERROR_CODE_MAP imported from error_codes.py
     
     # ============================================
     # Commands Library

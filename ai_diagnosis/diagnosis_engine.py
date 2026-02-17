@@ -157,9 +157,9 @@ class DiagnosisEngine:
                      f"이름: {error_info['name']}\n" \
                      f"카테고리: {error_info['category']}\n" \
                      f"일반적인 원인:\n" + \
-                     "\n".join([f"  - {cause}" for cause in error_info['common_causes']]) + \
+                     "\n".join([f"  - {cause}" for cause in error_info.get('common_causes', [])]) + \
                      f"\n\n일반적인 해결 방법:\n" + \
-                     "\n".join([f"  - {sol}" for sol in error_info['typical_solutions']]) + \
+                     "\n".join([f"  - {sol}" for sol in error_info.get('typical_solutions', [])]) + \
                      f"\n\n{kb_text}"
         
         prompt = self.config.DIAGNOSIS_PROMPT_TEMPLATE.format(
@@ -307,8 +307,8 @@ class DiagnosisEngine:
         
         if error_info:
             return {
-                '원인_분석': error_info['common_causes'],
-                '해결_방안': error_info['typical_solutions'],
+                '원인_분석': error_info.get('common_causes', []),
+                '해결_방안': error_info.get('typical_solutions', []),
                 '자동화_레벨': error_info['automation_level'],
                 '신뢰도': 0.6,
                 '위험도': 5,
