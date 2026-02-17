@@ -45,7 +45,7 @@ class AIConfig:
     KNOWLEDGE_BASE_DIR = os.getenv('KNOWLEDGE_BASE_DIR', './knowledge_base')
     PDF_DOCS = [
         'NetBackup_Appliance_Troubleshooting_Guide_511.pdf',
-        'NetBackup_52xx_5330_Admin_Guide_311.pdf'
+        'NetBackup 52xx and 5330 Appliance Admin Guide_311.pdf'
     ]
     
     # ============================================

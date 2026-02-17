@@ -1,0 +1,98 @@
+{
+  "13": {
+    "code": "13",
+    "descriptions": [
+      "filereadfailed Areadofafileorsocketfailed."
+    ],
+    "pages": [
+      64
+    ],
+    "sources": [
+      "NetBackup_Appliance_Troubleshooting_Guide_511.pdf"
+    ]
+  },
+  "48": {
+    "code": "48",
+    "descriptions": [
+      "clienthostnamecannotbefound Thesystemfunctiongethostbyname() failedtofind theclient’shostname."
+    ],
+    "pages": [
+      64
+    ],
+    "sources": [
+      "NetBackup_Appliance_Troubleshooting_Guide_511.pdf"
+    ]
+  },
+  "83": {
+    "code": "83",
+    "descriptions": [
+      "mediaopenerror Thetapemanager(bptm)ordiskmanager(bpdm)did notopenthedeviceorfilethatthebackuporrestore"
+    ],
+    "pages": [
+      64
+    ],
+    "sources": [
+      "NetBackup_Appliance_Troubleshooting_Guide_511.pdf"
+    ]
+  },
+  "84": {
+    "code": "84",
+    "descriptions": [
+      "mediawriteerror Thesystem’sdevicedriverreturnedanI/Oerrorwhile NetBackupwrotetoremovablemediaoradiskfile."
+    ],
+    "pages": [
+      64
+    ],
+    "sources": [
+      "NetBackup_Appliance_Troubleshooting_Guide_511.pdf"
+    ]
+  },
+  "89": {
+    "code": "89",
+    "descriptions": [
+      "problemsencounteredduringsetupof TheNetBackupprocessesusesharedmemoryfor sharedmemory someoperations.Thisstatusisreturnedwhenanerror"
+    ],
+    "pages": [
+      65
+    ],
+    "sources": [
+      "NetBackup_Appliance_Troubleshooting_Guide_511.pdf"
+    ]
+  },
+  "213": {
+    "code": "213",
+    "descriptions": [
+      "nostorageunitsavailableforuse TheNetBackupresourcebroker(nbrb)didnotfindany storageunitsavailableforuse.Eitherallstorageunits"
+    ],
+    "pages": [
+      65
+    ],
+    "sources": [
+      "NetBackup_Appliance_Troubleshooting_Guide_511.pdf"
+    ]
+  },
+  "242": {
+    "code": "242",
+    "descriptions": [
+      "operationwouldcauseanillegalduplication Iftherequestisprocessed,itcausesaduplicateentry (forexample,inthecatalogortheconfiguration"
+    ],
+    "pages": [
+      65
+    ],
+    "sources": [
+      "NetBackup_Appliance_Troubleshooting_Guide_511.pdf"
+    ]
+  },
+  "1500": {
+    "code": "1500",
+    "descriptions": [
+      "Invalidstorageunit Thestorageunitorstorageunitgroupspecifiedforone ormoredestinationsinstoragelifecyclepolicyisnot"
+    ],
+    "pages": [
+      65
+    ],
+    "sources": [
+      "NetBackup_Appliance_Troubleshooting_Guide_511.pdf"
+    ]
+  }
+}

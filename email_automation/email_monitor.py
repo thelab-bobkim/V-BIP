@@ -2,6 +2,7 @@
 V-BIP Phase 3-A: Email Monitor
 이메일 자동 모니터링 및 첨부파일 다운로드
 """
+from trigger_ai_diagnosis import trigger_ai_diagnosis
 
 import imaplib
 import email
