@@ -11,7 +11,11 @@ from psycopg2.extras import RealDictCursor
 import os
 from datetime import datetime, timedelta
 import json
+from dotenv import load_dotenv
 from lightweight_diagnosis_engine import get_diagnosis_engine
+
+# 환경변수 로드
+load_dotenv()
 
 app = Flask(__name__, static_folder='dashboard', static_url_path='')
 CORS(app)
@@ -19,13 +23,13 @@ CORS(app)
 # AI 진단 엔진 초기화
 diagnosis_engine = get_diagnosis_engine()
 
-# 데이터베이스 연결 설정
+# 데이터베이스 연결 설정 (환경변수 우선)
 DB_CONFIG = {
-    'host': 'localhost',
-    'port': 5432,
-    'database': 'vbip',
-    'user': 'vbip_user',
-    'password': 'vbip_password_2024'
+    'host': os.getenv('POSTGRES_HOST', 'localhost'),
+    'port': int(os.getenv('POSTGRES_PORT', 5432)),
+    'database': os.getenv('POSTGRES_DB', 'vbip'),
+    'user': os.getenv('POSTGRES_USER', 'vbip_user'),
+    'password': os.getenv('POSTGRES_PASSWORD', 'vbip_password_2024')
 }
 
 def get_db_connection():

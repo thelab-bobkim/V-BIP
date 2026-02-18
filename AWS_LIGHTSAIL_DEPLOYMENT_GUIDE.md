@@ -1,428 +1,405 @@
-# V-BIP 2.3 AWS Lightsail 프로덕션 배포 가이드
+# V-BIP 2.3 AWS Lightsail 배포 가이드
 
-**서버 정보**:
-- **퍼블릭 IP**: 3.39.255.201
-- **프라이빗 IP**: 172.26.13.4
-- **OS**: Ubuntu 20.04/22.04 (Debian 기반)
-- **방화벽**: SSH(22), HTTP(80), HTTPS(443), PostgreSQL(5432), Custom(5000-8502)
+## 📋 목차
+1. [사전 준비사항](#사전-준비사항)
+2. [Lightsail 인스턴스 생성](#lightsail-인스턴스-생성)
+3. [서버 초기 설정](#서버-초기-설정)
+4. [Docker 설치](#docker-설치)
+5. [V-BIP 배포](#v-bip-배포)
+6. [도메인 및 SSL 설정](#도메인-및-ssl-설정)
+7. [모니터링 및 유지보수](#모니터링-및-유지보수)
 
 ---
 
-## 📦 배포 전 준비사항
+## 🔧 사전 준비사항
 
-### 1. 서버 접속
-```bash
-ssh -i ~/.ssh/lightsail_key.pem ubuntu@3.39.255.201
+### 필요한 계정 및 도구
+- AWS 계정 (Lightsail 사용 가능)
+- SSH 클라이언트 (터미널, PuTTY 등)
+- Git 클라이언트
+- 도메인 (선택사항)
+
+### 권장 사양
+- **인스턴스 크기**: 최소 2GB RAM (4GB 권장)
+- **스토리지**: 40GB 이상
+- **OS**: Ubuntu 22.04 LTS
+
+---
+
+## 🚀 Lightsail 인스턴스 생성
+
+### 1단계: AWS Lightsail 콘솔 접속
+1. https://lightsail.aws.amazon.com 접속
+2. "인스턴스 생성" 클릭
+
+### 2단계: 인스턴스 설정
+```yaml
+플랫폼: Linux/Unix
+청사진: OS 전용 → Ubuntu 22.04 LTS
+인스턴스 플랜: 
+  - 개발/테스트: $5/월 (1GB RAM, 1 vCPU, 40GB SSD)
+  - 운영: $10/월 (2GB RAM, 1 vCPU, 60GB SSD) ⭐ 권장
+  - 프로덕션: $20/월 (4GB RAM, 2 vCPU, 80GB SSD)
 ```
 
-### 2. 필수 패키지 설치
+### 3단계: SSH 키 페어 설정
 ```bash
-# 시스템 업데이트
+# 기본 SSH 키 사용 또는 새 키 생성
+# 키 다운로드: LightsailDefaultKey-ap-northeast-2.pem
+```
+
+### 4단계: 인스턴스 생성
+- 인스턴스 이름: `vbip-production`
+- 생성 완료 대기 (약 1-2분)
+
+---
+
+## ⚙️ 서버 초기 설정
+
+### SSH 접속
+```bash
+# SSH 키 권한 설정
+chmod 400 ~/Downloads/LightsailDefaultKey-ap-northeast-2.pem
+
+# SSH 접속
+ssh -i ~/Downloads/LightsailDefaultKey-ap-northeast-2.pem ubuntu@<LIGHTSAIL_IP>
+```
+
+### 시스템 업데이트
+```bash
+# 패키지 업데이트
 sudo apt-get update
 sudo apt-get upgrade -y
 
-# Python 3 및 pip
-sudo apt-get install -y python3 python3-pip python3-venv
-
-# PostgreSQL 15
-sudo apt-get install -y postgresql postgresql-contrib
-
-# Git
-sudo apt-get install -y git
-
-# Nginx (리버스 프록시)
-sudo apt-get install -y nginx
-
-# Supervisor (프로세스 관리)
-sudo apt-get install -y supervisor
-
-# 기타 도구
-sudo apt-get install -y curl wget htop vim
+# 필수 패키지 설치
+sudo apt-get install -y \
+    git \
+    curl \
+    wget \
+    vim \
+    ufw \
+    htop
 ```
 
----
-
-## 🗄️ PostgreSQL 설정
-
-### 1. PostgreSQL 서비스 시작
+### 방화벽 설정
 ```bash
-sudo service postgresql start
-sudo service postgresql enable
-```
-
-### 2. 데이터베이스 및 사용자 생성
-```bash
-sudo -u postgres psql << 'EOF'
-CREATE DATABASE vbip;
-CREATE USER vbip_user WITH PASSWORD 'YOUR_SECURE_PASSWORD_HERE';
-GRANT ALL PRIVILEGES ON DATABASE vbip TO vbip_user;
-\c vbip
-GRANT ALL ON SCHEMA public TO vbip_user;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO vbip_user;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO vbip_user;
-\q
-EOF
-```
-
-### 3. 외부 접속 허용 (선택사항)
-```bash
-# postgresql.conf 수정
-sudo vim /etc/postgresql/15/main/postgresql.conf
-# listen_addresses = '*'
-
-# pg_hba.conf 수정
-sudo vim /etc/postgresql/15/main/pg_hba.conf
-# host    vbip    vbip_user    0.0.0.0/0    md5
-
-# 재시작
-sudo service postgresql restart
-```
-
----
-
-## 📂 프로젝트 배포
-
-### 1. GitHub에서 클론
-```bash
-cd /home/ubuntu
-git clone https://github.com/thelab-bobkim/V-BIP.git
-cd V-BIP
-```
-
-### 2. Python 가상환경 생성
-```bash
-python3 -m venv venv
-source venv/bin/activate
-pip install --upgrade pip
-pip install -r requirements_production.txt
-```
-
-### 3. 데이터베이스 스키마 로드
-```bash
-# V-BIP 기존 스키마
-sudo -u postgres psql -d vbip -f database/schema.sql
-
-# AI 확장 스키마
-sudo -u postgres psql -d vbip -f database/schema_ai_extension.sql
-
-# 에러코드 50개 로드
-sudo -u postgres psql -d vbip -f database/insert_error_codes_50.sql
-```
-
-### 4. 환경 변수 설정
-```bash
-cat > /home/ubuntu/V-BIP/.env << 'EOF'
-# Database
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=vbip
-DB_USER=vbip_user
-DB_PASSWORD=YOUR_SECURE_PASSWORD_HERE
-
-# Flask
-FLASK_ENV=production
-FLASK_DEBUG=False
-SECRET_KEY=YOUR_RANDOM_SECRET_KEY_HERE
-
-# API
-API_PORT=5000
-CORS_ORIGINS=*
-
-# Logging
-LOG_LEVEL=INFO
-LOG_FILE=/var/log/vbip/api.log
-EOF
-
-chmod 600 .env
-```
-
----
-
-## 🚀 Supervisor 설정 (프로세스 관리)
-
-### 1. Supervisor 설정 파일 생성
-```bash
-sudo tee /etc/supervisor/conf.d/vbip-api.conf << 'EOF'
-[program:vbip-api]
-directory=/home/ubuntu/V-BIP
-command=/home/ubuntu/V-BIP/venv/bin/python3 api_server.py
-user=ubuntu
-autostart=true
-autorestart=true
-stderr_logfile=/var/log/vbip/api.err.log
-stdout_logfile=/var/log/vbip/api.out.log
-environment=PATH="/home/ubuntu/V-BIP/venv/bin"
-EOF
-```
-
-### 2. 로그 디렉토리 생성
-```bash
-sudo mkdir -p /var/log/vbip
-sudo chown ubuntu:ubuntu /var/log/vbip
-```
-
-### 3. Supervisor 재시작
-```bash
-sudo supervisorctl reread
-sudo supervisorctl update
-sudo supervisorctl start vbip-api
-sudo supervisorctl status
-```
-
----
-
-## 🌐 Nginx 리버스 프록시 설정
-
-### 1. Nginx 설정 파일
-```bash
-sudo tee /etc/nginx/sites-available/vbip << 'EOF'
-server {
-    listen 80;
-    server_name 3.39.255.201;
-
-    # API 서버 프록시
-    location /api/ {
-        proxy_pass http://localhost:5000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
-    # 정적 파일 (향후 대시보드)
-    location / {
-        root /home/ubuntu/V-BIP/dashboard;
-        try_files $uri $uri/ /index.html;
-    }
-}
-EOF
-```
-
-### 2. Nginx 활성화
-```bash
-sudo ln -s /etc/nginx/sites-available/vbip /etc/nginx/sites-enabled/
-sudo nginx -t
-sudo service nginx restart
-```
-
----
-
-## ✅ 배포 확인
-
-### 1. 서비스 상태 확인
-```bash
-# PostgreSQL
-sudo service postgresql status
-
-# Supervisor
-sudo supervisorctl status vbip-api
-
-# Nginx
-sudo service nginx status
-```
-
-### 2. API 테스트
-```bash
-# 헬스 체크
-curl http://3.39.255.201/api/health
-
-# 에러코드 통계
-curl http://3.39.255.201/api/error-codes/statistics
-
-# AI 진단
-curl -X POST http://3.39.255.201/api/ai/diagnose \
-  -H "Content-Type: application/json" \
-  -d '{"error_log": "NetBackup error 84: Media Manager not running"}'
-```
-
-### 3. 로그 확인
-```bash
-# API 로그
-tail -f /var/log/vbip/api.out.log
-
-# Nginx 로그
-tail -f /var/log/nginx/access.log
-
-# PostgreSQL 로그
-sudo tail -f /var/log/postgresql/postgresql-15-main.log
-```
-
----
-
-## 🔒 보안 설정
-
-### 1. 방화벽 (UFW)
-```bash
-sudo ufw allow 22/tcp    # SSH
+# UFW 방화벽 활성화
+sudo ufw allow OpenSSH
 sudo ufw allow 80/tcp    # HTTP
 sudo ufw allow 443/tcp   # HTTPS
-sudo ufw allow 5432/tcp  # PostgreSQL (필요시)
+sudo ufw allow 5000/tcp  # Flask API (임시)
 sudo ufw enable
 sudo ufw status
 ```
 
-### 2. SSL/TLS (Let's Encrypt)
+---
+
+## 🐳 Docker 설치
+
+### Docker Engine 설치
 ```bash
-sudo apt-get install -y certbot python3-certbot-nginx
-sudo certbot --nginx -d yourdomain.com
+# Docker 공식 저장소 추가
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+
+# Docker 사용자 그룹 추가
+sudo usermod -aG docker ubuntu
+
+# 재로그인 (SSH 재접속)
+exit
+ssh -i ~/Downloads/LightsailDefaultKey-ap-northeast-2.pem ubuntu@<LIGHTSAIL_IP>
+
+# Docker 버전 확인
+docker --version
 ```
 
-### 3. PostgreSQL 비밀번호 강화
+### Docker Compose 설치
 ```bash
-sudo -u postgres psql -d vbip << 'EOF'
-ALTER USER vbip_user WITH PASSWORD 'NEW_STRONG_PASSWORD';
-\q
-EOF
+# Docker Compose 설치
+sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
+
+# 버전 확인
+docker-compose --version
 ```
 
 ---
 
-## 🔄 업데이트 및 유지보수
+## 📦 V-BIP 배포
 
-### 1. 코드 업데이트
+### 1단계: 코드 다운로드
 ```bash
-cd /home/ubuntu/V-BIP
-git pull origin main
-source venv/bin/activate
-pip install -r requirements_production.txt
-sudo supervisorctl restart vbip-api
+# 프로젝트 디렉토리 생성
+mkdir -p ~/vbip
+cd ~/vbip
+
+# GitHub에서 클론
+git clone https://github.com/thelab-bobkim/V-BIP.git .
+
+# 또는 백업 파일에서 복원
+wget https://www.genspark.ai/api/files/s/LzuC0BEE -O vbip_backup.tar.gz
+tar -xzf vbip_backup.tar.gz
+cd V-BIP
 ```
 
-### 2. 데이터베이스 백업
+### 2단계: 환경변수 설정
 ```bash
-# 백업
-pg_dump -U vbip_user -h localhost -d vbip -F c -f vbip_backup_$(date +%Y%m%d).dump
+# .env 파일 생성
+cp .env.example .env
+vim .env
 
-# 복원
-pg_restore -U vbip_user -h localhost -d vbip -c vbip_backup_20260218.dump
+# 설정 예시:
+# POSTGRES_PASSWORD=강력한_비밀번호_여기에_입력
+# SECRET_KEY=$(openssl rand -hex 32)
 ```
 
-### 3. 로그 로테이션
+### 3단계: Docker 컨테이너 빌드 및 시작
 ```bash
-sudo tee /etc/logrotate.d/vbip << 'EOF'
-/var/log/vbip/*.log {
-    daily
-    missingok
-    rotate 14
-    compress
-    delaycompress
-    notifempty
-    create 0640 ubuntu ubuntu
-    sharedscripts
-    postrotate
-        supervisorctl restart vbip-api > /dev/null
-    endscript
-}
-EOF
+# 배포 스크립트 실행
+./deploy.sh
+
+# 또는 수동 실행
+docker-compose build
+docker-compose up -d
+
+# 컨테이너 상태 확인
+docker-compose ps
+```
+
+### 4단계: 초기 데이터 로드
+```bash
+# 2,804개 에러코드 로드
+./load_initial_data.sh
+
+# 로그 확인
+docker-compose logs -f api
+```
+
+### 5단계: 서비스 확인
+```bash
+# Health Check
+curl http://localhost:5000/api/health
+
+# API 테스트
+curl http://localhost:5000/api/error-codes/statistics | python3 -m json.tool
+
+# 대시보드 접속
+curl http://localhost
 ```
 
 ---
 
-## 📊 모니터링
+## 🌐 도메인 및 SSL 설정
 
-### 1. 시스템 리소스
+### 도메인 연결 (Route 53 또는 Lightsail DNS)
 ```bash
-# CPU, 메모리
-htop
+# Lightsail 고정 IP 생성
+# AWS Lightsail 콘솔 → 네트워킹 → 고정 IP 생성 → 인스턴스 연결
 
+# DNS A 레코드 설정
+vbip.yourdomain.com → <LIGHTSAIL_STATIC_IP>
+```
+
+### Let's Encrypt SSL 인증서 설치
+```bash
+# Certbot 설치
+sudo apt-get install -y certbot
+
+# SSL 인증서 발급
+sudo certbot certonly --standalone -d vbip.yourdomain.com
+
+# 인증서 복사
+sudo cp /etc/letsencrypt/live/vbip.yourdomain.com/fullchain.pem ~/vbip/nginx/ssl/
+sudo cp /etc/letsencrypt/live/vbip.yourdomain.com/privkey.pem ~/vbip/nginx/ssl/
+sudo chown ubuntu:ubuntu ~/vbip/nginx/ssl/*.pem
+
+# Nginx 설정 업데이트 (nginx/nginx.conf에서 HTTPS 섹션 활성화)
+vim ~/vbip/nginx/nginx.conf
+
+# Docker Compose 재시작
+docker-compose restart nginx
+```
+
+### SSL 자동 갱신 설정
+```bash
+# Cron 작업 추가
+sudo crontab -e
+
+# 매월 1일 03:00에 SSL 인증서 갱신
+0 3 1 * * certbot renew --quiet && docker-compose -f /home/ubuntu/vbip/docker-compose.yml restart nginx
+```
+
+---
+
+## 📊 모니터링 및 유지보수
+
+### 시스템 모니터링
+```bash
 # 디스크 사용량
 df -h
 
-# 네트워크
-netstat -tulpn | grep LISTEN
+# 메모리 사용량
+free -h
+
+# Docker 컨테이너 상태
+docker-compose ps
+
+# Docker 리소스 사용량
+docker stats
+
+# 시스템 리소스
+htop
 ```
 
-### 2. API 성능
+### 로그 확인
 ```bash
-# 응답 시간
-curl -w "@curl-format.txt" -o /dev/null -s http://localhost/api/health
+# 전체 로그
+docker-compose logs -f
 
-# 동시 접속 테스트
-ab -n 1000 -c 10 http://localhost/api/health
+# API 서버 로그만
+docker-compose logs -f api
+
+# PostgreSQL 로그만
+docker-compose logs -f postgres
+
+# 최근 100줄
+docker-compose logs --tail=100 api
 ```
 
----
+### 데이터베이스 백업
+```bash
+# 백업 스크립트 생성
+cat > ~/backup_db.sh << 'EOF'
+#!/bin/bash
+BACKUP_DIR="/home/ubuntu/backups"
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+mkdir -p $BACKUP_DIR
 
-## 🚨 트러블슈팅
+docker exec vbip-postgres pg_dump -U vbip_user vbip > $BACKUP_DIR/vbip_backup_$TIMESTAMP.sql
 
-### API 서버가 시작되지 않는 경우
+# 30일 이상된 백업 삭제
+find $BACKUP_DIR -name "vbip_backup_*.sql" -mtime +30 -delete
+
+echo "Backup completed: vbip_backup_$TIMESTAMP.sql"
+EOF
+
+chmod +x ~/backup_db.sh
+
+# Cron 작업 추가 (매일 새벽 2시)
+(crontab -l 2>/dev/null; echo "0 2 * * * /home/ubuntu/backup_db.sh") | crontab -
+```
+
+### 애플리케이션 업데이트
+```bash
+# 최신 코드 다운로드
+cd ~/vbip
+git pull origin main
+
+# Docker 이미지 재빌드
+docker-compose build
+
+# 무중단 재시작
+docker-compose up -d
+
+# 헬스체크
+curl http://localhost:5000/api/health
+```
+
+### 문제 해결
+
+#### 컨테이너가 시작되지 않는 경우
 ```bash
 # 로그 확인
-sudo supervisorctl tail -f vbip-api stderr
+docker-compose logs api
+docker-compose logs postgres
 
-# 수동 실행 테스트
-cd /home/ubuntu/V-BIP
-source venv/bin/activate
-python3 api_server.py
+# 컨테이너 재시작
+docker-compose restart
+
+# 전체 재시작
+docker-compose down
+docker-compose up -d
 ```
 
-### PostgreSQL 연결 오류
+#### 데이터베이스 연결 오류
 ```bash
-# 연결 테스트
-psql -h localhost -U vbip_user -d vbip
+# PostgreSQL 컨테이너 상태 확인
+docker exec -it vbip-postgres pg_isready -U vbip_user
+
+# 직접 접속 테스트
+docker exec -it vbip-postgres psql -U vbip_user -d vbip
 
 # 연결 설정 확인
-sudo cat /etc/postgresql/15/main/pg_hba.conf
+docker exec vbip-api printenv | grep POSTGRES
 ```
 
-### Nginx 502 Bad Gateway
+#### 포트 충돌
 ```bash
-# API 서버 상태 확인
-sudo supervisorctl status vbip-api
+# 포트 사용 확인
+sudo netstat -tulpn | grep :5000
+sudo netstat -tulpn | grep :5432
 
-# 포트 확인
-sudo lsof -i :5000
-
-# Nginx 설정 테스트
-sudo nginx -t
+# 프로세스 종료
+sudo fuser -k 5000/tcp
 ```
 
 ---
 
-## 📝 Requirements (production)
+## 🔒 보안 권장사항
 
-```txt
-# requirements_production.txt
-flask==3.1.0
-flask-cors==5.0.0
-psycopg2-binary==2.9.9
-gunicorn==21.2.0
-python-dotenv==1.0.0
+### 1. SSH 보안 강화
+```bash
+# 비밀번호 인증 비활성화
+sudo vim /etc/ssh/sshd_config
+# PasswordAuthentication no
+
+sudo systemctl restart sshd
+```
+
+### 2. PostgreSQL 보안
+```bash
+# 강력한 비밀번호 사용
+# .env 파일에서 POSTGRES_PASSWORD 변경
+
+# 외부 접근 차단
+# docker-compose.yml에서 5432 포트 제거 (내부 네트워크만 사용)
+```
+
+### 3. API 인증 추가
+```python
+# api_server.py에 JWT 인증 추가 권장
+# Flask-JWT-Extended 라이브러리 사용
 ```
 
 ---
 
-## 🎯 배포 체크리스트
+## 📞 지원 및 문의
 
-- [ ] PostgreSQL 설치 및 데이터베이스 생성
-- [ ] 프로젝트 클론 및 가상환경 설정
-- [ ] 데이터베이스 스키마 로드
-- [ ] 환경 변수 설정 (.env)
-- [ ] Supervisor 설정
-- [ ] Nginx 설정
-- [ ] 방화벽 설정
-- [ ] API 테스트
-- [ ] SSL 인증서 설치 (선택)
-- [ ] 로그 로테이션 설정
-- [ ] 백업 스크립트 설정
+- **GitHub**: https://github.com/thelab-bobkim/V-BIP
+- **이메일**: thelab.bobkim@gmail.com
+- **문서**: https://github.com/thelab-bobkim/V-BIP/wiki
 
 ---
 
-## 📞 지원
+## 📝 체크리스트
 
-**GitHub**: https://github.com/thelab-bobkim/V-BIP  
-**API 문서**: http://3.39.255.201/api/health  
-**상태**: 프로덕션 준비 완료
+배포 완료 전 확인사항:
 
-**배포 완료 후 접속 URL**:
-- **API 서버**: http://3.39.255.201/api/
-- **헬스 체크**: http://3.39.255.201/api/health
-- **대시보드**: http://3.39.255.201/ (향후 추가)
+- [ ] Lightsail 인스턴스 생성 완료
+- [ ] SSH 접속 확인
+- [ ] Docker 및 Docker Compose 설치
+- [ ] V-BIP 코드 다운로드
+- [ ] .env 파일 설정
+- [ ] Docker 컨테이너 시작
+- [ ] 초기 데이터 로드 (2,804개 에러코드)
+- [ ] Health Check 성공
+- [ ] 도메인 연결 (선택사항)
+- [ ] SSL 인증서 설치 (선택사항)
+- [ ] 자동 백업 설정
+- [ ] 모니터링 도구 설정
 
 ---
 
-**다음 단계**: 실제 Lightsail 서버에 접속하여 위 가이드대로 배포 진행
+**작성일**: 2026-02-18  
+**버전**: V-BIP 2.3  
+**최종 업데이트**: Phase 3 완료

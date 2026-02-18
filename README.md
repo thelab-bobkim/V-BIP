@@ -1,259 +1,446 @@
-# V-BIP (Veritas Backup Intelligence Platform)
+# V-BIP 2.3 README
 
-배리티스 백업 통합 관리 시스템 v1.0
+<div align="center">
 
-## 📋 개요
+![V-BIP Logo](https://img.shields.io/badge/V--BIP-2.3-blue?style=for-the-badge)
+![Python](https://img.shields.io/badge/Python-3.12-green?style=for-the-badge&logo=python)
+![Flask](https://img.shields.io/badge/Flask-3.1-black?style=for-the-badge&logo=flask)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-blue?style=for-the-badge&logo=postgresql)
+![Docker](https://img.shields.io/badge/Docker-Ready-blue?style=for-the-badge&logo=docker)
 
-디에스티인터내셔널의 100개 고객사 Veritas 백업 시스템을 실시간으로 모니터링하고,
-장애를 자동으로 분석하여 트러블슈팅 가이드를 제공하는 통합 관리 시스템입니다.
+**Veritas NetBackup AI-powered Backup Intelligence Platform**
 
-## 🚀 주요 기능
+AI 기반 NetBackup 에러 자동 진단 및 복구 시스템
 
-- ✅ **실시간 모니터링**: 100개 고객사 백업 상태 통합 대시보드
-- ✅ **자동 장애 분석**: 에러 코드 자동 분류 및 트러블슈팅 가이드 제공
-- ✅ **알림 시스템**: Email/Slack 자동 알림
-- ✅ **히스토리 관리**: 전체 백업 작업 히스토리 및 통계
-- ✅ **지식 베이스**: 500+ 트러블슈팅 가이드 DB
+[🚀 빠른 시작](#-빠른-시작) • [📖 문서](#-문서) • [🎯 주요 기능](#-주요-기능) • [🔧 설치](#-설치) • [📊 대시보드](#-대시보드)
 
-## 🏗️ 시스템 구조
-
-```
-V-BIP
-├── PostgreSQL      : 데이터베이스
-├── Flask API       : REST API 서버 (Port 5001)
-├── Flask Dashboard : 웹 대시보드 (Port 5000)
-└── n8n (선택)      : 워크플로우 자동화 (Port 5678)
-```
-
-## 📦 설치 및 실행
-
-### 사전 요구사항
-
-- Docker 20.10+
-- Docker Compose 2.0+
-- 2GB 이상 메모리
-- 10GB 이상 디스크 공간
-
-### 빠른 시작
-
-```bash
-# 1. 프로젝트 다운로드 (샌드박스에서 개발 완료 후)
-cd /home/user/vbip
-
-# 2. Docker Compose로 실행
-docker-compose up -d
-
-# 3. 데이터베이스 초기화
-docker exec vbip-postgres psql -U vbip_user -d veritas_monitor -f /docker-entrypoint-initdb.d/schema.sql
-docker exec vbip-postgres psql -U vbip_user -d veritas_monitor -f /docker-entrypoint-initdb.d/insert_dummy_data.sql
-docker exec vbip-postgres psql -U vbip_user -d veritas_monitor -f /docker-entrypoint-initdb.d/insert_backup_jobs.sql
-
-# 4. 헬스 체크
-curl http://localhost:5000/health
-
-# 5. 대시보드 접속
-open http://localhost:5000
-```
-
-## 🔧 설정
-
-### 환경 변수
-
-`.env` 파일 생성:
-
-```bash
-DB_HOST=postgres
-DB_PORT=5432
-DB_NAME=veritas_monitor
-DB_USER=vbip_user
-DB_PASSWORD=vbip_password_2026
-
-# n8n 설정
-N8N_BASIC_AUTH_USER=admin
-N8N_BASIC_AUTH_PASSWORD=vbip_admin_2026
-```
-
-### 데이터베이스 연결 정보
-
-```
-Host: localhost
-Port: 5432
-Database: veritas_monitor
-User: vbip_user
-Password: vbip_password_2026
-```
-
-## 📊 더미 데이터
-
-시스템에는 다음 더미 데이터가 포함되어 있습니다:
-
-- **10개 고객사**: 삼성전자, LG전자, SK하이닉스, 현대자동차, 포스코, 네이버, 카카오, 쿠팡, 배달의민족, 우아한형제들
-- **5명 엔지니어**: 김태현, 이수진, 박민수, 정하늘, 최영희
-- **7개 에러 패턴**: Error 58, 41, 84, 96, 2106, 13, 1
-- **1,200+ 백업 작업 히스토리** (최근 30일)
-
-## 🔍 로그 파서 사용법
-
-### 수동 파싱
-
-```bash
-python3 scripts/veritas_log_parser.py \
-  --file /path/to/logfile.log \
-  --customer SAMSUNG \
-  --uploader admin@dstl.co.kr \
-  --source Email \
-  --db-host localhost \
-  --db-port 5432 \
-  --db-name veritas_monitor \
-  --db-user vbip_user \
-  --db-password vbip_password_2026
-```
-
-### Docker 컨테이너 내에서 실행
-
-```bash
-docker exec -it vbip-api python3 /app/scripts/veritas_log_parser.py \
-  --file /app/sample_logs/SAMSUNG_backup_20260215.log \
-  --customer SAMSUNG \
-  --uploader system
-```
-
-## 📡 API 엔드포인트
-
-### 대시보드 API
-
-```
-GET  /api/dashboard/summary          # 대시보드 요약 정보
-GET  /api/customers                  # 고객사 목록
-GET  /api/customer/<id>/jobs         # 특정 고객사 백업 작업 히스토리
-GET  /api/job/<id>/troubleshooting   # 트러블슈팅 가이드
-GET  /api/statistics                 # 전체 통계
-GET  /health                         # 헬스 체크
-```
-
-### 예시
-
-```bash
-# 대시보드 요약
-curl http://localhost:5000/api/dashboard/summary
-
-# 고객사 목록
-curl http://localhost:5000/api/customers
-
-# 통계
-curl http://localhost:5000/api/statistics
-```
-
-## 🗂️ 디렉토리 구조
-
-```
-vbip/
-├── database/
-│   ├── schema.sql                 # 데이터베이스 스키마
-│   ├── insert_dummy_data.sql      # 더미 데이터 (고객사, 엔지니어, 에러 패턴)
-│   ├── insert_backup_jobs.sql     # 백업 작업 히스토리 더미 데이터
-│   └── generate_dummy_jobs.py     # 더미 데이터 생성 스크립트
-├── scripts/
-│   └── veritas_log_parser.py      # 로그 파서
-├── dashboard/
-│   └── app.py                     # Flask 대시보드 앱
-├── templates/
-│   └── dashboard.html             # 대시보드 HTML
-├── sample_logs/
-│   └── SAMSUNG_backup_20260215.log # 샘플 로그 파일
-├── docker-compose.yml             # Docker Compose 설정
-├── Dockerfile.api                 # API 서버 Dockerfile
-├── Dockerfile.dashboard           # 대시보드 Dockerfile
-├── requirements.txt               # Python 패키지
-└── README.md                      # 이 파일
-```
-
-## 🚀 AWS Lightsail 마이그레이션
-
-### Step 1: 샌드박스에서 전체 프로젝트 압축
-
-```bash
-cd /home/user
-tar czf vbip-v1.0.tar.gz vbip/
-```
-
-### Step 2: AWS Lightsail로 전송
-
-```bash
-# 로컬에서 실행
-scp vbip-v1.0.tar.gz ubuntu@<AWS_IP>:/home/ubuntu/
-```
-
-### Step 3: AWS에서 압축 해제 및 실행
-
-```bash
-ssh ubuntu@<AWS_IP>
-
-# 압축 해제
-cd /home/ubuntu
-tar xzf vbip-v1.0.tar.gz
-cd vbip
-
-# Docker Compose 실행
-docker-compose up -d
-
-# 데이터베이스 초기화
-docker exec vbip-postgres psql -U vbip_user -d veritas_monitor -f /docker-entrypoint-initdb.d/schema.sql
-docker exec vbip-postgres psql -U vbip_user -d veritas_monitor -f /docker-entrypoint-initdb.d/insert_dummy_data.sql
-docker exec vbip-postgres psql -U vbip_user -d veritas_monitor -f /docker-entrypoint-initdb.d/insert_backup_jobs.sql
-
-# 확인
-docker ps
-curl http://localhost:5000/health
-```
-
-### Step 4: 방화벽 포트 개방 (AWS Lightsail 콘솔)
-
-```
-5000    TCP    대시보드
-5001    TCP    API
-5432    TCP    PostgreSQL (내부 전용)
-5678    TCP    n8n (선택)
-```
-
-## 📈 데이터 추가 방법
-
-### 실제 고객사 데이터 추가
-
-```sql
-INSERT INTO customers (
-    customer_code, customer_name, contact_person, contact_email,
-    site_type, veritas_version, server_count, contract_tier, primary_engineer_id
-) VALUES (
-    'ACTUAL_001', '실제고객사명', '담당자명', 'contact@customer.com',
-    'Remote', '10.1.1', 15, 'Gold', 1
-);
-```
-
-### 로그 파일 업로드
-
-1. **이메일 방식**: 로그 파일을 `veritas-logs@dstl.co.kr`로 발송
-2. **웹 업로드**: 대시보드에서 파일 업로드 (Phase 2)
-3. **수동 파싱**: `veritas_log_parser.py` 스크립트 사용
-
-## 🔐 보안
-
-- PostgreSQL은 Docker 내부 네트워크만 접근 가능
-- n8n은 Basic Auth 인증 활성화
-- 운영 환경에서는 HTTPS 필수 (Nginx + Let's Encrypt)
-- 환경 변수 파일 (`.env`)은 `.gitignore`에 추가
-
-## 📞 문의
-
-- 개발: Genspark AI Development Team
-- 고객: (주)디에스티인터내셔널
-
-## 📝 라이선스
-
-Proprietary - (주)디에스티인터내셔널
+</div>
 
 ---
 
-**Version**: 1.0.0  
-**Last Updated**: 2026-02-15  
-**Status**: Phase 1 MVP (Sandbox Development Complete)
+## 📋 목차
+
+1. [프로젝트 개요](#-프로젝트-개요)
+2. [주요 기능](#-주요-기능)
+3. [시스템 아키텍처](#-시스템-아키텍처)
+4. [빠른 시작](#-빠른-시작)
+5. [API 문서](#-api-문서)
+6. [배포](#-배포)
+7. [데이터베이스](#-데이터베이스)
+8. [개발 로드맵](#-개발-로드맵)
+
+---
+
+## 🎯 프로젝트 개요
+
+**V-BIP 2.3**은 Veritas NetBackup의 에러코드를 AI 기술로 자동 분석하고, 해결책을 제시하며, Level 1 에러는 자동으로 복구하는 지능형 백업 관리 플랫폼입니다.
+
+### 핵심 가치
+- ⚡ **자동화**: Level 1 에러 27% 자동 복구
+- 🎯 **정확도**: AI 신뢰도 74% 이상
+- 📊 **가시성**: 실시간 대시보드 모니터링
+- 🔒 **안전성**: 엔지니어 승인 워크플로우
+
+### 주요 통계
+```
+총 에러코드: 2,804개
+├─ Level 1 (AI 자동 해결): 761개 (27.0%)
+├─ Level 2 (엔지니어 승인): 1,788개 (63.4%)
+└─ Level 3 (현장 지원): 276개 (9.8%)
+
+자동 수정 가능: 757개 (26.8%)
+평균 신뢰도: 74.0%
+평균 해결 시간: 15분 (Level 1)
+```
+
+---
+
+## 🎯 주요 기능
+
+### 1. AI 자동 진단 및 분류
+- **2,804개** NetBackup 에러코드 자동 분류
+- **9개 챕터** 기반 체계적 분류 (NetBackup, Media Manager, Cloud 등)
+- **3단계** Resolution Level (자동/승인/현장)
+- **74% 평균 신뢰도** AI 분류 엔진
+
+### 2. 자동 복구 시스템
+```python
+# Level 1: 자동 복구 (즉시 실행)
+POST /api/recovery/process
+{
+  "error_code": "15000",
+  "customer_name": "Samsung Electronics",
+  "auto_approve_level1": true
+}
+```
+
+### 3. 엔지니어 승인 워크플로우
+```python
+# Level 2: 승인 후 자동 복구
+POST /api/approval/request  # 승인 요청
+POST /api/approval/{id}/approve  # 승인
+GET /api/approval/pending  # 대기 목록
+```
+
+### 4. 실시간 대시보드
+- 📊 에러 통계 및 차트
+- 🔔 실시간 알림 (30초 자동 갱신)
+- 👨‍💼 승인 대기 큐 관리
+- 🔍 에러코드 검색 및 상세 정보
+
+### 5. 챕터별 에러 분류
+| 챕터 | 에러코드 수 | 자동화율 | 평균 신뢰도 |
+|------|------------|---------|-----------|
+| Chapter 1: NetBackup status codes | 487개 (17.4%) | 33.9% | 74.9% |
+| Chapter 3: Media/Device Management | 781개 (27.9%) ⭐ | 18.4% | 72.8% |
+| Chapter 6: Database Agent | 330개 (11.8%) | 39.4% ⭐ | 75.7% ⭐ |
+
+---
+
+## 🏗️ 시스템 아키텍처
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                     Client Browser                       │
+│                   (Dashboard UI)                         │
+└───────────────────┬─────────────────────────────────────┘
+                    │ HTTP/HTTPS
+┌───────────────────▼─────────────────────────────────────┐
+│                   Nginx (Port 80/443)                    │
+│              Reverse Proxy & Load Balancer              │
+└───────────────────┬─────────────────────────────────────┘
+                    │
+┌───────────────────▼─────────────────────────────────────┐
+│              Flask API Server (Port 5000)                │
+│  ┌─────────────────────────────────────────────────┐   │
+│  │  21 REST API Endpoints                          │   │
+│  ├─────────────────────────────────────────────────┤   │
+│  │  • Error Code Management                        │   │
+│  │  • AI Diagnosis Engine                          │   │
+│  │  • Auto Recovery Manager                        │   │
+│  │  • Approval Workflow                            │   │
+│  └─────────────────────────────────────────────────┘   │
+└───────────────────┬─────────────────────────────────────┘
+                    │
+┌───────────────────▼─────────────────────────────────────┐
+│           PostgreSQL 15 (Port 5432)                      │
+│  ┌─────────────────────────────────────────────────┐   │
+│  │  14 Tables (10 Base + 4 AI Extension)           │   │
+│  │  • error_patterns (2,825 records)               │   │
+│  │  • incidents                                     │   │
+│  │  • auto_recovery_logs                           │   │
+│  │  • customers, engineers, backup_jobs            │   │
+│  └─────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🚀 빠른 시작
+
+### 사전 요구사항
+- Docker 24.0+
+- Docker Compose 2.0+
+- 4GB RAM 이상
+- 40GB 디스크 공간
+
+### 설치 및 실행
+
+```bash
+# 1. 저장소 클론
+git clone https://github.com/thelab-bobkim/V-BIP.git
+cd V-BIP
+
+# 2. 환경변수 설정
+cp .env.example .env
+vim .env  # PostgreSQL 비밀번호 변경
+
+# 3. Docker 배포
+./deploy.sh
+
+# 4. 초기 데이터 로드 (2,804개 에러코드)
+./load_initial_data.sh
+
+# 5. 서비스 확인
+curl http://localhost:5000/api/health
+```
+
+### 접속 URL
+- **대시보드**: http://localhost
+- **API 서버**: http://localhost/api
+- **Health Check**: http://localhost:5000/api/health
+
+---
+
+## 📖 API 문서
+
+### 에러코드 관리
+```bash
+# 에러코드 목록 조회
+GET /api/error-codes?page=1&limit=50&level=1
+
+# 에러코드 상세 조회
+GET /api/error-codes/{code}
+
+# 에러코드 통계
+GET /api/error-codes/statistics
+```
+
+### AI 진단
+```bash
+# 에러 진단
+POST /api/ai/diagnose
+{
+  "error_log": "Status Code: 15000 - Host Name Resolution Failed"
+}
+
+# 유사 사례 검색
+GET /api/ai/similar-cases/{error_code}
+```
+
+### 자동 복구
+```bash
+# Level 1 자동 복구
+POST /api/recovery/process
+{
+  "error_code": "15000",
+  "customer_name": "Samsung Electronics",
+  "auto_approve_level1": true
+}
+
+# 자동 수정 가능한 에러 목록
+GET /api/recovery/auto-fixable?limit=10
+```
+
+### 승인 워크플로우
+```bash
+# 승인 요청 생성
+POST /api/approval/request
+{
+  "customer_name": "Samsung Electronics",
+  "error_code": "1",
+  "description": "Backup partially successful"
+}
+
+# 대기 중인 승인 목록
+GET /api/approval/pending
+
+# 승인 처리
+POST /api/approval/{id}/approve
+{
+  "engineer_name": "김태현",
+  "approval_notes": "Level 2 에러 자동 복구 승인"
+}
+
+# 거부 처리
+POST /api/approval/{id}/reject
+{
+  "engineer_name": "김태현",
+  "rejection_reason": "추가 분석 필요"
+}
+```
+
+---
+
+## 🐳 배포
+
+### 로컬 개발 환경
+```bash
+# API 서버만 실행 (개발 모드)
+cd /home/user/V-BIP
+python3 api_server.py
+
+# PostgreSQL 직접 실행
+psql -U vbip_user -d vbip
+```
+
+### Docker Compose 배포
+```bash
+# 빌드 및 시작
+docker-compose up -d
+
+# 로그 확인
+docker-compose logs -f api
+
+# 컨테이너 재시작
+docker-compose restart
+
+# 중지 및 제거
+docker-compose down
+```
+
+### AWS Lightsail 배포
+자세한 내용은 [AWS_LIGHTSAIL_DEPLOYMENT_GUIDE.md](AWS_LIGHTSAIL_DEPLOYMENT_GUIDE.md) 참조
+
+---
+
+## 🗄️ 데이터베이스
+
+### 스키마 구조
+```sql
+-- 핵심 테이블
+error_patterns       -- 2,825개 에러코드 (AI 분류 완료)
+incidents            -- 인시던트 관리
+auto_recovery_logs   -- 자동 복구 히스토리
+customers            -- 고객 정보
+engineers            -- 엔지니어 정보
+backup_jobs          -- 백업 작업 로그
+
+-- 지원 테이블
+tickets              -- 티켓 관리
+alert_history        -- 알림 히스토리
+ai_training_data     -- AI 학습 데이터
+monthly_reports      -- 월간 리포트
+```
+
+### 데이터베이스 백업
+```bash
+# 백업
+docker exec vbip-postgres pg_dump -U vbip_user vbip > backup.sql
+
+# 복원
+docker exec -i vbip-postgres psql -U vbip_user vbip < backup.sql
+```
+
+---
+
+## 📊 대시보드
+
+### 주요 화면
+1. **대시보드 탭**: 실시간 통계 및 차트
+   - 전체 에러코드 통계
+   - Level별 분포 (도넛 차트)
+   - Severity별 분포 (바 차트)
+   - 자동 수정 가능 에러 수
+
+2. **승인 대기 탭**: 엔지니어 승인 큐
+   - 대기 중인 승인 요청 목록
+   - 원클릭 승인/거부
+   - SLA 데드라인 표시
+
+3. **에러코드 탭**: 에러코드 검색 및 조회
+   - 2,804개 에러코드 전체 목록
+   - 필터링 및 검색
+   - 상세 정보 및 해결 방법
+
+### 스크린샷
+```
+[Dashboard UI]
+┌──────────────────────────────────────────────┐
+│  V-BIP 2.3 대시보드                           │
+├──────────────────────────────────────────────┤
+│  총 에러코드: 2,825                           │
+│  자동 수정 가능: 757 (27%)                    │
+│  ┌─────────────┐  ┌─────────────┐           │
+│  │ Level 분포   │  │ Severity    │           │
+│  │  (차트)     │  │  (차트)     │           │
+│  └─────────────┘  └─────────────┘           │
+└──────────────────────────────────────────────┘
+```
+
+---
+
+## 🗺️ 개발 로드맵
+
+### ✅ Phase 1: 기본 시스템 구축 (완료)
+- [x] PostgreSQL 데이터베이스 설계 및 구축
+- [x] Flask API 서버 구현 (21개 엔드포인트)
+- [x] 샘플 50개 에러코드 로드
+
+### ✅ Phase 2: AI 자동화 시스템 (완료)
+- [x] **Phase 2-1**: AI 진단 엔진 통합
+- [x] **Phase 2-2**: 자동 복구 로직 구현
+- [x] **Phase 2-3**: 엔지니어 승인 워크플로우 API
+- [x] **Phase 2-4**: 대시보드 UI 개발
+- [x] **Phase 2-5**: 2,804개 에러코드 분류 완료
+
+### ✅ Phase 3: Docker 배포 패키지 (완료)
+- [x] Dockerfile 및 docker-compose.yml 작성
+- [x] Nginx 리버스 프록시 설정
+- [x] 배포 스크립트 자동화
+- [x] AWS Lightsail 배포 가이드
+
+### 🔄 Phase 4: 프로덕션 배포 (진행 중)
+- [ ] AWS Lightsail 인스턴스 생성
+- [ ] 도메인 및 SSL 인증서 설정
+- [ ] 모니터링 및 알림 시스템
+- [ ] 자동 백업 설정
+
+### 📅 Phase 5: 고급 기능 (계획)
+- [ ] 실시간 WebSocket 알림
+- [ ] Grafana 모니터링 대시보드
+- [ ] AI 학습 데이터 수집 및 재학습
+- [ ] 다국어 지원 (영어, 한국어)
+- [ ] Slack/Teams 알림 연동
+
+---
+
+## 📂 프로젝트 구조
+
+```
+V-BIP/
+├── api_server.py              # Flask API 서버 (메인)
+├── lightweight_diagnosis_engine.py  # AI 진단 엔진
+├── auto_recovery/
+│   └── recovery_manager_v2.py # 자동 복구 관리자
+├── approval_workflow_manager.py  # 승인 워크플로우
+├── database/
+│   ├── schema.sql             # 기본 스키마
+│   └── schema_ai_extension.sql  # AI 확장 스키마
+├── dashboard/
+│   └── index.html             # 대시보드 UI
+├── nginx/
+│   └── nginx.conf             # Nginx 설정
+├── docker-compose.yml         # Docker Compose 설정
+├── Dockerfile                 # Docker 이미지
+├── requirements.txt           # Python 패키지
+├── .env.example               # 환경변수 예시
+├── deploy.sh                  # 배포 스크립트
+├── load_initial_data.sh       # 초기 데이터 로드
+└── AWS_LIGHTSAIL_DEPLOYMENT_GUIDE.md  # 배포 가이드
+```
+
+---
+
+## 🤝 기여
+
+기여는 언제나 환영합니다! 다음 절차를 따라주세요:
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+---
+
+## 📄 라이선스
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+---
+
+## 📞 지원 및 문의
+
+- **GitHub**: https://github.com/thelab-bobkim/V-BIP
+- **이메일**: thelab.bobkim@gmail.com
+- **이슈 트래커**: https://github.com/thelab-bobkim/V-BIP/issues
+
+---
+
+## 🙏 감사의 말
+
+- Veritas NetBackup 팀 (에러코드 참조 문서 제공)
+- Flask 및 PostgreSQL 커뮤니티
+- Docker 및 오픈소스 커뮤니티
+
+---
+
+<div align="center">
+
+**Made with ❤️ by TheLab**
+
+[![GitHub](https://img.shields.io/badge/GitHub-thelab--bobkim-black?style=flat&logo=github)](https://github.com/thelab-bobkim)
+[![Stars](https://img.shields.io/github/stars/thelab-bobkim/V-BIP?style=social)](https://github.com/thelab-bobkim/V-BIP/stargazers)
+
+</div>
