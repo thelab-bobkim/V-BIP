@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import random
 """
 V-BIP 2.3 AI 자동 문제 해결 시스템 API 서버
 에러코드 관리, 인시던트 추적, AI 분류 API
@@ -735,3 +736,399 @@ if __name__ == '__main__':
     print(f"🤖 자동 복구 API: http://0.0.0.0:5000/api/recovery/process")
     print("=" * 60)
     app.run(host='0.0.0.0', port=5000, debug=True)
+
+
+
+# AI 자동 수정 시뮬레이션 엔드포인트
+
+@app.route('/api/simulate/auto-fix', methods=['POST'])
+
+def simulate_auto_fix():
+
+    """AI 자동 수정 시뮬레이션"""
+
+    try:
+
+        data = request.get_json()
+
+        error_code = data.get('error_code')
+
+        
+
+        if not error_code:
+
+            return jsonify({'success': False, 'error': 'error_code required'}), 400
+
+        
+
+        conn = get_db_connection()
+
+        cur = conn.cursor()
+
+        
+
+        # 에러 정보 조회
+
+        cur.execute("""
+
+            SELECT error_code, error_name, error_description, 
+
+                   resolution_level, ai_confidence_score, auto_fix_enabled,
+
+                   auto_fix_script
+
+            FROM error_patterns
+
+            WHERE error_code = %s
+
+        """, (error_code,))
+
+        
+
+        error = cur.fetchone()
+
+        
+
+        if not error:
+
+            return jsonify({'success': False, 'error': 'Error code not found'}), 404
+
+        
+
+        print(f"DEBUG: error type={type(error)}, value={error}")
+        # 시뮬레이션 단계 생성
+
+        steps = []
+
+        
+
+        steps.append({
+
+            'step': 1,
+
+            'action': 'Error Detection',
+
+            'description': f'Detected error code {error['error_code']}: {error['error_name']}',
+
+            'status': 'completed',
+
+            'timestamp': datetime.now().isoformat()
+
+        })
+
+        
+
+        steps.append({
+
+            'step': 2,
+
+            'action': 'AI Analysis',
+
+            'description': f'Analyzing error with AI confidence: {error['ai_confidence_score']}%',
+
+            'status': 'completed',
+
+            'timestamp': datetime.now().isoformat()
+
+        })
+
+        
+
+        if error['resolution_level'] == 1 and error['auto_fix_enabled']:  # Level 1 and auto_fix_enabled
+
+            steps.append({
+
+                'step': 3,
+
+                'action': 'Auto-Fix Execution',
+
+                'description': 'Executing automated fix script',
+
+                'script': error['auto_fix_script'] if error['auto_fix_script'] else 'Restart service and clear cache',
+
+                'status': 'completed',
+
+                'timestamp': datetime.now().isoformat()
+
+            })
+
+            
+
+            steps.append({
+
+                'step': 4,
+
+                'action': 'Verification',
+
+                'description': 'Verifying fix was successful',
+
+                'status': 'completed',
+
+                'timestamp': datetime.now().isoformat()
+
+            })
+
+            
+
+            final_status = 'success'
+
+            message = 'Error automatically fixed by AI'
+
+            
+
+        elif error['resolution_level'] == 2:
+
+            steps.append({
+
+                'step': 3,
+
+                'action': 'Engineer Approval Required',
+
+                'description': 'Waiting for engineer approval before applying fix',
+
+                'status': 'pending',
+
+                'timestamp': datetime.now().isoformat()
+
+            })
+
+            
+
+            final_status = 'pending_approval'
+
+            message = 'Engineer approval required'
+
+            
+
+        else:  # Level 3
+
+            steps.append({
+
+                'step': 3,
+
+                'action': 'Field Support Required',
+
+                'description': 'Hardware issue detected - field engineer dispatch required',
+
+                'status': 'pending',
+
+                'timestamp': datetime.now().isoformat()
+
+            })
+
+            
+
+            final_status = 'field_support_needed'
+
+            message = 'Field support required'
+
+        
+
+        # 통계 업데이트 (시뮬레이션)
+
+        cur.execute("""
+
+            UPDATE error_patterns 
+
+            SET occurrence_frequency = occurrence_frequency + 1,
+
+                last_updated = %s
+
+            WHERE error_code = %s
+
+        """, (datetime.now(), error_code))
+
+        
+
+        conn.commit()
+
+        cur.close()
+
+        conn.close()
+
+        
+
+        return jsonify({
+
+            'success': True,
+
+            'error_code': error['error_code'],
+
+            'error_name': error['error_name'],
+
+            'resolution_level': error['resolution_level'],
+
+            'ai_confidence': error['ai_confidence_score'],
+
+            'final_status': final_status,
+
+            'message': message,
+
+            'steps': steps
+
+        })
+
+        
+
+    except Exception as e:
+
+        import traceback
+        error_detail = f'{type(e).__name__}: {str(e)}'
+        print(f'EXCEPTION in simulate_auto_fix: {error_detail}')
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': error_detail}), 500
+
+
+
+
+
+@app.route('/api/simulate/batch-auto-fix', methods=['POST'])
+
+def simulate_batch_auto_fix():
+
+    """배치 자동 수정 시뮬레이션"""
+
+    try:
+
+        data = request.get_json()
+
+        count = data.get('count', 10)  # 기본 10개
+
+        
+
+        conn = get_db_connection()
+
+        cur = conn.cursor()
+
+        
+
+        # Level 1 에러 중 랜덤 선택
+
+        cur.execute("""
+
+            SELECT error_code, error_name, ai_confidence_score
+
+            FROM error_patterns
+
+            WHERE resolution_level = 1 AND auto_fix_enabled = true
+
+            ORDER BY RANDOM()
+
+            LIMIT %s
+
+        """, (count,))
+
+        
+
+        errors = cur.fetchall()
+
+                  
+
+        results = []
+
+        for error in errors:
+
+            results.append({
+
+                'error_code': error['error_code'],
+
+                'error_name': error['error_name'],
+
+                'ai_confidence': error["ai_confidence_score"],
+
+                'status': 'auto_fixed',
+
+                'execution_time_ms': random.randint(50, 500)
+
+            })
+
+            
+
+            # 통계 업데이트
+
+            cur.execute("""
+
+                UPDATE error_patterns 
+
+                SET occurrence_frequency = occurrence_frequency + 1,
+
+                    success_rate_percent = 
+
+                        CASE 
+
+                                      WHEN success_rate_percent IS NULL THEN 95.0
+
+                            ELSE (success_rate_percent * occurrence_frequency + 95.0) / (occurrence_frequency + 1)
+
+                        END,
+
+                    last_updated = %s
+
+                WHERE error_code = %s
+
+            """, (datetime.now(), error['error_code']))
+
+        
+
+        conn.commit()
+
+        
+
+        # 전체 통계
+
+        cur.execute("""
+
+            SELECT 
+
+                COUNT(*) as total_fixed,
+
+                AVG(ai_confidence_score) as avg_confidence,
+
+                SUM(occurrence_frequency) as total_occurrences
+
+            FROM error_patterns
+
+            WHERE resolution_level = 1 AND auto_fix_enabled = true
+
+        """)
+
+        
+
+        stats = cur.fetchone()
+
+        
+
+        cur.close()
+
+        conn.close()
+
+        
+
+        return jsonify({
+
+            'success': True,
+
+            'fixed_count': len(results),
+
+            'results': results,
+
+            'statistics': {
+
+                'total_auto_fix_capable': stats[0],
+
+                'avg_confidence': float(stats[1]) if stats[1] else 0,
+
+                'total_occurrences': stats[2] if stats[2] else 0
+
+            }
+
+        })
+
+        
+
+    except Exception as e:
+
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+

@@ -10,11 +10,17 @@ from datetime import datetime
 
 # Database connection
 DB_CONFIG = {
-    'dbname': 'vbip',
-    'user': 'vbip_user',
-    'password': 'vbip_password_2024',
+
     'host': 'localhost',
-    'port': 5432
+
+    'port': 5432,
+
+    'database': 'vbip',
+
+    'user': 'vbip_user',
+
+    'password': 'vbip-htkss15s&'
+
 }
 
 def load_classified_errors_to_db(json_file: str):
@@ -154,5 +160,5 @@ def load_classified_errors_to_db(json_file: str):
     print(f"\n✅ DB 적재 및 검증 완료!")
 
 if __name__ == '__main__':
-    JSON_FILE = '/home/user/V-BIP/classified_all_errors_keyword.json'
+    JSON_FILE = '/home/ubuntu/V-BIP/classified_all_errors_keyword.json'
     load_classified_errors_to_db(JSON_FILE)
