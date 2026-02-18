@@ -11,9 +11,13 @@ from psycopg2.extras import RealDictCursor
 import os
 from datetime import datetime, timedelta
 import json
+from lightweight_diagnosis_engine import get_diagnosis_engine
 
 app = Flask(__name__)
 CORS(app)
+
+# AI 진단 엔진 초기화
+diagnosis_engine = get_diagnosis_engine()
 
 # 데이터베이스 연결 설정
 DB_CONFIG = {
@@ -375,43 +379,82 @@ def approve_incident(incident_id):
 
 @app.route('/api/ai/classify', methods=['POST'])
 def classify_error():
-    """AI 에러 분류 (간단한 키워드 기반)"""
+    """AI 에러 분류 (개선된 버전)"""
     try:
         data = request.json
-        error_message = data.get('error_message', '').lower()
+        error_message = data.get('error_message', '')
         error_code = data.get('error_code', '')
+        error_description = data.get('error_description', '')
         
-        # 키워드 기반 분류
-        auto_fix_keywords = ['restart', 'retry', 'reconnect', 'timeout', 'temporary', 'cache']
-        engineer_keywords = ['configuration', 'policy', 'credentials', 'authentication', 'database']
-        onsite_keywords = ['hardware', 'tape', 'robot', 'physical', 'device', 'san']
-        
-        # 점수 계산
-        auto_score = sum(1 for kw in auto_fix_keywords if kw in error_message)
-        engineer_score = sum(1 for kw in engineer_keywords if kw in error_message)
-        onsite_score = sum(1 for kw in onsite_keywords if kw in error_message)
-        
-        # 분류 결정
-        scores = {1: auto_score, 2: engineer_score, 3: onsite_score}
-        resolution_level = max(scores, key=scores.get)
-        
-        confidence = min(85 + scores[resolution_level] * 5, 99)
-        
-        reasons = {
-            1: f"자동 해결 키워드 {auto_score}개 감지: 자동 재시도 가능",
-            2: f"엔지니어 확인 키워드 {engineer_score}개 감지: 설정 변경 필요",
-            3: f"온사이트 키워드 {onsite_score}개 감지: 현장 점검 필요"
-        }
+        # AI 진단 엔진 사용
+        if error_code:
+            classification = diagnosis_engine.classify_error(
+                error_code, 
+                error_message, 
+                error_description
+            )
+        else:
+            # 에러 코드 자동 추출
+            extracted_code = diagnosis_engine.extract_error_code(error_message)
+            if extracted_code:
+                classification = diagnosis_engine.classify_error(
+                    extracted_code,
+                    error_message,
+                    error_description
+                )
+            else:
+                return jsonify({
+                    'success': False,
+                    'error': 'Error code not found in message'
+                }), 400
         
         return jsonify({
             'success': True,
-            'data': {
-                'error_code': error_code,
-                'resolution_level': resolution_level,
-                'ai_confidence_score': confidence,
-                'classification_reason': reasons[resolution_level],
-                'recommended_action': f"Level {resolution_level} 처리 필요"
-            }
+            'data': classification
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/ai/diagnose', methods=['POST'])
+def diagnose_error():
+    """AI 에러 진단 (전체 분석)"""
+    try:
+        data = request.json
+        error_log = data.get('error_log', '')
+        
+        if not error_log:
+            return jsonify({
+                'success': False,
+                'error': 'error_log is required'
+            }), 400
+        
+        # 진단 실행
+        result = diagnosis_engine.diagnose(error_log)
+        
+        # 유사 사례 조회
+        if result.get('success') and result.get('error_code'):
+            similar_cases = diagnosis_engine.get_similar_cases(
+                result['error_code'],
+                limit=3
+            )
+            result['similar_cases'] = similar_cases
+        
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/ai/similar-cases/<error_code>', methods=['GET'])
+def get_similar_cases(error_code):
+    """유사 사례 조회"""
+    try:
+        limit = request.args.get('limit', 5, type=int)
+        cases = diagnosis_engine.get_similar_cases(error_code, limit)
+        
+        return jsonify({
+            'success': True,
+            'error_code': error_code,
+            'total_cases': len(cases),
+            'cases': cases
         })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
