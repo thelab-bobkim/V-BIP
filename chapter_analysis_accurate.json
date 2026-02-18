@@ -1,0 +1,105 @@
+{
+  "total_errors": 2804,
+  "analysis_date": "2026-02-18",
+  "chapters": [
+    {
+      "chapter": "Chapter 1: NetBackup status codes",
+      "range": "0-928",
+      "count": 487,
+      "percentage": 17.36804564907275,
+      "level_1": 165,
+      "level_2": 242,
+      "level_3": 80,
+      "auto_fix": 165,
+      "avg_confidence": 74.88295687885011
+    },
+    {
+      "chapter": "Chapter 2: Media Manager status codes",
+      "range": "1000-1970",
+      "count": 207,
+      "percentage": 7.382310984308131,
+      "level_1": 35,
+      "level_2": 162,
+      "level_3": 10,
+      "auto_fix": 35,
+      "avg_confidence": 73.45893719806763
+    },
+    {
+      "chapter": "Chapter 3: Media and Device Management status codes",
+      "range": "2000-4900",
+      "count": 781,
+      "percentage": 27.85306704707561,
+      "level_1": 144,
+      "level_2": 522,
+      "level_3": 115,
+      "auto_fix": 144,
+      "avg_confidence": 72.77720870678617
+    },
+    {
+      "chapter": "Chapter 4: NetBackup Java/Web services status codes",
+      "range": "5400-5999",
+      "count": 174,
+      "percentage": 6.205420827389443,
+      "level_1": 53,
+      "level_2": 117,
+      "level_3": 4,
+      "auto_fix": 53,
+      "avg_confidence": 74.64367816091954
+    },
+    {
+      "chapter": "Chapter 4: NetBackup KMS status codes",
+      "range": "5902-5949",
+      "count": 41,
+      "percentage": 1.4621968616262482,
+      "level_1": 15,
+      "level_2": 26,
+      "level_3": 0,
+      "auto_fix": 15,
+      "avg_confidence": 75.17073170731707
+    },
+    {
+      "chapter": "Chapter 5: NetBackup Cloud status codes",
+      "range": "6000-6833",
+      "count": 244,
+      "percentage": 8.7018544935806,
+      "level_1": 79,
+      "level_2": 158,
+      "level_3": 7,
+      "auto_fix": 79,
+      "avg_confidence": 74.83196721311475
+    },
+    {
+      "chapter": "Chapter 6: Database and Application Agent status codes",
+      "range": "7100-7897",
+      "count": 330,
+      "percentage": 11.768901569186877,
+      "level_1": 130,
+      "level_2": 189,
+      "level_3": 11,
+      "auto_fix": 130,
+      "avg_confidence": 75.66363636363636
+    },
+    {
+      "chapter": "Chapter 7: NetBackup Deduplication status codes",
+      "range": "8000-8963",
+      "count": 265,
+      "percentage": 9.450784593437946,
+      "level_1": 86,
+      "level_2": 154,
+      "level_3": 25,
+      "auto_fix": 86,
+      "avg_confidence": 74.61509433962264
+    },
+    {
+      "chapter": "Chapter 8: NetBackup Replication and Disaster Recovery",
+      "range": "9032-9996",
+      "count": 275,
+      "percentage": 9.807417974322396,
+      "level_1": 49,
+      "level_2": 209,
+      "level_3": 17,
+      "auto_fix": 49,
+      "avg_confidence": 72.81090909090909
+    }
+  ]
+}
