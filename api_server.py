@@ -11,6 +11,7 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 import os
 from datetime import datetime, timedelta
+import traceback
 import json
 from dotenv import load_dotenv
 from lightweight_diagnosis_engine import get_diagnosis_engine
@@ -1114,11 +1115,11 @@ def simulate_batch_auto_fix():
 
             'statistics': {
 
-                'total_auto_fix_capable': stats[0],
+                'total_auto_fix_capable': stats['total_fixed'],
 
-                'avg_confidence': float(stats[1]) if stats[1] else 0,
+                'avg_confidence': float(stats['avg_confidence']) if stats['avg_confidence'] else 0,
 
-                'total_occurrences': stats[2] if stats[2] else 0
+                'total_occurrences': stats['total_occurrences'] if stats['total_occurrences'] else 0
 
             }
 
@@ -1127,8 +1128,10 @@ def simulate_batch_auto_fix():
         
 
     except Exception as e:
-
-        return jsonify({'success': False, 'error': str(e)}), 500
+        error_detail = f"{type(e).__name__}: {str(e)}"
+        print(f"BATCH ERROR: {error_detail}")
+        traceback.print_exc()
+        return jsonify({"success": False, "error": error_detail}), 500
 
 
 
