@@ -543,11 +543,63 @@ def health_check():
             'error': str(e)
         }), 503
 
+# ==================== Auto Recovery APIs ====================
+
+@app.route('/api/recovery/process', methods=['POST'])
+def process_recovery():
+    """자동 복구 실행 API"""
+    try:
+        from auto_recovery.recovery_manager_v2 import AutoRecoveryManager
+        
+        data = request.json
+        error_code = data.get('error_code')
+        customer_name = data.get('customer_name', 'Unknown')
+        context = data.get('context', {})
+        auto_approve = data.get('auto_approve_level1', True)
+        
+        if not error_code:
+            return jsonify({
+                'success': False,
+                'error': 'error_code is required'
+            }), 400
+        
+        manager = AutoRecoveryManager()
+        result = manager.process_error(
+            error_code,
+            customer_name,
+            context,
+            auto_approve
+        )
+        
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/recovery/auto-fixable', methods=['GET'])
+def get_auto_fixable():
+    """자동 수정 가능한 에러 목록"""
+    try:
+        from auto_recovery.recovery_manager_v2 import AutoRecoveryManager
+        
+        limit = request.args.get('limit', 50, type=int)
+        
+        manager = AutoRecoveryManager()
+        errors = manager.get_auto_fixable_errors(limit=limit)
+        
+        return jsonify({
+            'success': True,
+            'total': len(errors),
+            'errors': errors
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 if __name__ == '__main__':
     print("=" * 60)
     print("V-BIP 2.3 AI 자동 문제 해결 시스템 API 서버 시작")
     print("=" * 60)
     print(f"🌐 서버 주소: http://0.0.0.0:5000")
     print(f"📊 API 문서: http://0.0.0.0:5000/api/health")
+    print(f"🤖 자동 복구 API: http://0.0.0.0:5000/api/recovery/process")
     print("=" * 60)
     app.run(host='0.0.0.0', port=5000, debug=True)
