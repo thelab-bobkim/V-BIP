@@ -4,7 +4,7 @@ V-BIP 2.3 AI 자동 문제 해결 시스템 API 서버
 에러코드 관리, 인시던트 추적, AI 분류 API
 """
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 import json
 from lightweight_diagnosis_engine import get_diagnosis_engine
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='dashboard', static_url_path='')
 CORS(app)
 
 # AI 진단 엔진 초기화
@@ -31,6 +31,15 @@ DB_CONFIG = {
 def get_db_connection():
     """PostgreSQL 데이터베이스 연결"""
     return psycopg2.connect(**DB_CONFIG, cursor_factory=RealDictCursor)
+
+# ============================================================
+# Dashboard UI
+# ============================================================
+
+@app.route('/')
+def dashboard():
+    """대시보드 UI"""
+    return send_from_directory('dashboard', 'index.html')
 
 # ============================================================
 # 에러코드 관리 API

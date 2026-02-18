@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>V-BIP 2.3 AI 자동 문제 해결 시스템</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
+</head>
+<body class="bg-gray-100">
+    <!-- 네비게이션 -->
+    <nav class="bg-blue-600 text-white p-4 shadow-lg">
+        <div class="container mx-auto flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <i class="fas fa-robot text-2xl"></i>
+                <h1 class="text-xl font-bold">V-BIP 2.3 AI 자동 문제 해결 시스템</h1>
+            </div>
+            <div class="flex space-x-4">
+                <button onclick="showTab('dashboard')" class="px-4 py-2 hover:bg-blue-700 rounded" id="tab-dashboard">
+                    <i class="fas fa-chart-line mr-2"></i>대시보드
+                </button>
+                <button onclick="showTab('approvals')" class="px-4 py-2 hover:bg-blue-700 rounded" id="tab-approvals">
+                    <i class="fas fa-check-circle mr-2"></i>승인 대기
+                    <span class="ml-2 bg-red-500 px-2 py-1 rounded-full text-xs" id="pending-count">0</span>
+                </button>
+                <button onclick="showTab('errors')" class="px-4 py-2 hover:bg-blue-700 rounded" id="tab-errors">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>에러코드
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mx-auto p-6">
+        <!-- 대시보드 탭 -->
+        <div id="dashboard-content" class="tab-content">
+            <!-- 통계 카드 -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-500 text-sm">총 에러코드</p>
+                            <p class="text-3xl font-bold text-blue-600" id="total-errors">0</p>
+                        </div>
+                        <i class="fas fa-code text-4xl text-blue-200"></i>
+                    </div>
+                </div>
+                
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-500 text-sm">오늘 인시던트</p>
+                            <p class="text-3xl font-bold text-green-600" id="today-incidents">0</p>
+                        </div>
+                        <i class="fas fa-bell text-4xl text-green-200"></i>
+                    </div>
+                </div>
+                
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-500 text-sm">승인 대기</p>
+                            <p class="text-3xl font-bold text-orange-600" id="pending-approvals">0</p>
+                        </div>
+                        <i class="fas fa-clock text-4xl text-orange-200"></i>
+                    </div>
+                </div>
+                
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-500 text-sm">자동 해결률</p>
+                            <p class="text-3xl font-bold text-purple-600" id="ai-success-rate">0%</p>
+                        </div>
+                        <i class="fas fa-robot text-4xl text-purple-200"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 차트 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <h3 class="text-lg font-bold mb-4">Resolution Level 분포</h3>
+                    <canvas id="levelChart"></canvas>
+                </div>
+                
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <h3 class="text-lg font-bold mb-4">Severity 분포</h3>
+                    <canvas id="severityChart"></canvas>
+                </div>
+            </div>
+
+            <!-- 자동 수정 가능한 에러 Top 10 -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h3 class="text-lg font-bold mb-4">
+                    <i class="fas fa-magic mr-2 text-purple-600"></i>
+                    자동 수정 가능한 에러 Top 10
+                </h3>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200" id="auto-fix-table">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">에러코드</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">에러명</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">신뢰도</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">예상 시간</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">액션</th>
+                            </tr>
+                        </thead>
+                        <tbody id="auto-fix-tbody" class="bg-white divide-y divide-gray-200">
+                            <!-- 동적 로드 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 승인 대기 탭 -->
+        <div id="approvals-content" class="tab-content hidden">
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h3 class="text-lg font-bold mb-4">
+                    <i class="fas fa-hourglass-half mr-2 text-orange-600"></i>
+                    승인 대기 중인 요청
+                </h3>
+                <div id="approvals-list">
+                    <!-- 동적 로드 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 에러코드 검색 탭 -->
+        <div id="errors-content" class="tab-content hidden">
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h3 class="text-lg font-bold mb-4">
+                    <i class="fas fa-search mr-2 text-blue-600"></i>
+                    에러코드 검색
+                </h3>
+                <div class="mb-4">
+                    <input type="text" id="error-search" placeholder="에러코드 또는 에러명 검색..." 
+                           class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           onkeyup="searchErrors()">
+                </div>
+                <div id="error-results" class="space-y-4">
+                    <!-- 동적 로드 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+        let levelChart = null;
+        let severityChart = null;
+
+        // 탭 전환
+        function showTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`${tabName}-content`).classList.remove('hidden');
+            
+            // 탭 버튼 활성화
+            document.querySelectorAll('nav button').forEach(btn => {
+                btn.classList.remove('bg-blue-700');
+            });
+            document.getElementById(`tab-${tabName}`).classList.add('bg-blue-700');
+            
+            // 탭별 데이터 로드
+            if (tabName === 'dashboard') loadDashboard();
+            if (tabName === 'approvals') loadApprovals();
+        }
+
+        // 대시보드 데이터 로드
+        async function loadDashboard() {
+            try {
+                // 통계 로드
+                const statsRes = await axios.get(`${API_BASE}/api/dashboard/statistics`);
+                const stats = statsRes.data.data;
+                
+                document.getElementById('total-errors').textContent = stats.total_error_codes.toLocaleString();
+                document.getElementById('today-incidents').textContent = stats.today_incidents;
+                document.getElementById('pending-approvals').textContent = stats.pending_approvals;
+                document.getElementById('pending-count').textContent = stats.pending_approvals;
+                document.getElementById('ai-success-rate').textContent = stats.ai_success_rate.toFixed(1) + '%';
+                
+                // Level 차트
+                const errorStats = await axios.get(`${API_BASE}/api/error-codes/statistics`);
+                const levels = errorStats.data.data.by_level;
+                
+                if (levelChart) levelChart.destroy();
+                const ctx1 = document.getElementById('levelChart').getContext('2d');
+                levelChart = new Chart(ctx1, {
+                    type: 'doughnut',
+                    data: {
+                        labels: levels.map(l => `Level ${l.resolution_level}`),
+                        datasets: [{
+                            data: levels.map(l => l.total_errors),
+                            backgroundColor: ['#10b981', '#f59e0b', '#ef4444']
+                        }]
+                    }
+                });
+                
+                // Severity 차트
+                const severities = errorStats.data.data.by_severity;
+                if (severityChart) severityChart.destroy();
+                const ctx2 = document.getElementById('severityChart').getContext('2d');
+                severityChart = new Chart(ctx2, {
+                    type: 'bar',
+                    data: {
+                        labels: severities.map(s => s.severity),
+                        datasets: [{
+                            label: '에러 개수',
+                            data: severities.map(s => s.count),
+                            backgroundColor: '#3b82f6'
+                        }]
+                    },
+                    options: {
+                        scales: {
+                            y: { beginAtZero: true }
+                        }
+                    }
+                });
+                
+                // 자동 수정 가능한 에러 Top 10
+                const autoFixRes = await axios.get(`${API_BASE}/api/recovery/auto-fixable?limit=10`);
+                const errors = autoFixRes.data.errors;
+                
+                const tbody = document.getElementById('auto-fix-tbody');
+                tbody.innerHTML = errors.map(error => `
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${error.error_code}</td>
+                        <td class="px-6 py-4 text-sm text-gray-500">${error.error_name.substring(0, 50)}...</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <span class="px-2 py-1 bg-green-100 text-green-800 rounded">${error.ai_confidence_score}%</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${error.avg_resolution_minutes}분</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                            <button onclick="executeAutoFix('${error.error_code}')" class="text-blue-600 hover:text-blue-800">
+                                <i class="fas fa-play-circle mr-1"></i>실행
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+                
+            } catch (error) {
+                console.error('대시보드 로드 실패:', error);
+            }
+        }
+
+        // 승인 대기 목록 로드
+        async function loadApprovals() {
+            try {
+                const res = await axios.get(`${API_BASE}/api/approval/pending?limit=20`);
+                const approvals = res.data.approvals;
+                
+                const listEl = document.getElementById('approvals-list');
+                
+                if (approvals.length === 0) {
+                    listEl.innerHTML = '<p class="text-gray-500 text-center py-8">대기 중인 승인 요청이 없습니다.</p>';
+                    return;
+                }
+                
+                listEl.innerHTML = approvals.map(approval => {
+                    const minutesLeft = parseFloat(approval.minutes_until_sla);
+                    const isUrgent = minutesLeft < 60;
+                    
+                    return `
+                        <div class="border rounded-lg p-4 mb-4 ${isUrgent ? 'border-red-300 bg-red-50' : 'border-gray-200'}">
+                            <div class="flex justify-between items-start">
+                                <div class="flex-1">
+                                    <h4 class="font-bold text-lg">${approval.incident_number}</h4>
+                                    <p class="text-gray-600 mt-1">
+                                        <i class="fas fa-exclamation-circle mr-2"></i>
+                                        ${approval.error_code}: ${approval.error_name}
+                                    </p>
+                                    <p class="text-sm text-gray-500 mt-2">
+                                        <i class="fas fa-building mr-2"></i>고객사: ${approval.customer_name}
+                                    </p>
+                                    <p class="text-sm text-gray-500">
+                                        <i class="fas fa-clock mr-2"></i>
+                                        SLA까지: <span class="${isUrgent ? 'text-red-600 font-bold' : ''}">${Math.floor(minutesLeft)}분</span>
+                                    </p>
+                                    <p class="text-sm text-gray-500">
+                                        <i class="fas fa-chart-line mr-2"></i>신뢰도: ${approval.ai_confidence}%
+                                    </p>
+                                </div>
+                                <div class="flex space-x-2">
+                                    <button onclick="approveIncident(${approval.incident_id})" 
+                                            class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">
+                                        <i class="fas fa-check mr-2"></i>승인
+                                    </button>
+                                    <button onclick="rejectIncident(${approval.incident_id})" 
+                                            class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
+                                        <i class="fas fa-times mr-2"></i>거부
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+            } catch (error) {
+                console.error('승인 목록 로드 실패:', error);
+            }
+        }
+
+        // 승인 처리
+        async function approveIncident(incidentId) {
+            if (!confirm('이 요청을 승인하시겠습니까?')) return;
+            
+            try {
+                const res = await axios.post(`${API_BASE}/api/approval/${incidentId}/approve`, {
+                    approved_by: '시스템 관리자',
+                    approval_notes: 'Dashboard에서 승인',
+                    execute_immediately: true
+                });
+                
+                if (res.data.success) {
+                    alert('승인이 완료되었습니다!');
+                    loadApprovals();
+                    loadDashboard();
+                } else {
+                    alert('승인 실패: ' + res.data.error);
+                }
+            } catch (error) {
+                alert('승인 처리 중 오류 발생');
+                console.error(error);
+            }
+        }
+
+        // 거부 처리
+        async function rejectIncident(incidentId) {
+            const reason = prompt('거부 사유를 입력하세요:');
+            if (!reason) return;
+            
+            try {
+                const res = await axios.post(`${API_BASE}/api/approval/${incidentId}/reject`, {
+                    rejected_by: '시스템 관리자',
+                    rejection_reason: reason
+                });
+                
+                if (res.data.success) {
+                    alert('거부가 완료되었습니다!');
+                    loadApprovals();
+                } else {
+                    alert('거부 실패: ' + res.data.error);
+                }
+            } catch (error) {
+                alert('거부 처리 중 오류 발생');
+                console.error(error);
+            }
+        }
+
+        // 자동 수정 실행
+        async function executeAutoFix(errorCode) {
+            if (!confirm(`에러코드 ${errorCode}에 대한 자동 복구를 실행하시겠습니까?`)) return;
+            
+            try {
+                const res = await axios.post(`${API_BASE}/api/recovery/process`, {
+                    error_code: errorCode,
+                    customer_name: 'Test Customer',
+                    auto_approve_level1: true
+                });
+                
+                if (res.data.success) {
+                    alert(`자동 복구가 완료되었습니다!\n상태: ${res.data.action}`);
+                } else {
+                    alert('자동 복구 실패: ' + res.data.error);
+                }
+            } catch (error) {
+                alert('자동 복구 처리 중 오류 발생');
+                console.error(error);
+            }
+        }
+
+        // 에러 검색
+        async function searchErrors() {
+            const query = document.getElementById('error-search').value;
+            if (query.length < 2) {
+                document.getElementById('error-results').innerHTML = '<p class="text-gray-500">2자 이상 입력하세요.</p>';
+                return;
+            }
+            
+            try {
+                const res = await axios.get(`${API_BASE}/api/error-codes/search?q=${encodeURIComponent(query)}`);
+                const errors = res.data.data;
+                
+                const resultsEl = document.getElementById('error-results');
+                
+                if (errors.length === 0) {
+                    resultsEl.innerHTML = '<p class="text-gray-500">검색 결과가 없습니다.</p>';
+                    return;
+                }
+                
+                resultsEl.innerHTML = errors.map(error => `
+                    <div class="border rounded-lg p-4">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h4 class="font-bold text-lg">에러코드: ${error.error_code}</h4>
+                                <p class="text-gray-700 mt-2">${error.error_name}</p>
+                                <p class="text-sm text-gray-500 mt-2">${error.error_description}</p>
+                                <div class="mt-3 flex space-x-4">
+                                    <span class="text-sm">
+                                        <i class="fas fa-layer-group mr-1"></i>
+                                        Level ${error.resolution_level}
+                                    </span>
+                                    <span class="text-sm">
+                                        <i class="fas fa-chart-line mr-1"></i>
+                                        신뢰도 ${error.ai_confidence_score}%
+                                    </span>
+                                    <span class="text-sm">
+                                        <i class="fas fa-exclamation-triangle mr-1"></i>
+                                        ${error.severity}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+                
+            } catch (error) {
+                console.error('검색 실패:', error);
+            }
+        }
+
+        // 초기 로드
+        window.onload = () => {
+            showTab('dashboard');
+            setInterval(() => {
+                if (!document.getElementById('dashboard-content').classList.contains('hidden')) {
+                    loadDashboard();
+                }
+                if (!document.getElementById('approvals-content').classList.contains('hidden')) {
+                    loadApprovals();
+                }
+            }, 30000); // 30초마다 자동 새로고침
+        };
+    </script>
+</body>
+</html>
