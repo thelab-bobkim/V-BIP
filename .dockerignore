@@ -1,34 +1,22 @@
-# Docker 관련 파일
-.env
-*.log
-logs/
+# V-BIP Docker 빌드 제외 파일 목록
 
-# Python 캐시
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-
-# 가상환경
+env/
 venv/
 ENV/
-env/
+*.egg-info/
+dist/
+build/
+
+# 환경 설정
+.env
+.env.local
+.env.*.local
 
 # IDE
 .vscode/
@@ -37,22 +25,43 @@ env/
 *.swo
 *~
 
+# 로그 파일
+*.log
+logs/
+
+# Git
+.git/
+.gitignore
+
+# 데이터 파일
+*.pdf
+*.json
+*.csv
+extracted_*.json
+classified_*.json
+
+# 테스트
+test_*.py
+*_test.py
+tests/
+
+# 문서
+*.md
+docs/
+PHASE*.md
+CHAPTER*.md
+
+# 백업
+*.backup
+*.bak
+*.tar.gz
+
 # OS
 .DS_Store
 Thumbs.db
 
-# 데이터베이스 백업
-*.sql.backup
-*.dump
-
-# 임시 파일
-tmp/
-temp/
-*.tmp
-
-# SSL 인증서
-nginx/ssl/*.pem
-nginx/ssl/*.key
-
-# 테스트 데이터
-test_data/
+# 개발용 스크립트
+test_*.sh
+analyze_*.py
+extract_*.py
+classify_*.py
