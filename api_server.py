@@ -543,6 +543,125 @@ def health_check():
             'error': str(e)
         }), 503
 
+# ==================== Engineer Approval Workflow APIs ====================
+
+@app.route('/api/approval/request', methods=['POST'])
+def create_approval_request():
+    """승인 요청 생성 API"""
+    try:
+        from approval_workflow_manager import ApprovalWorkflowManager
+        
+        data = request.json
+        error_code = data.get('error_code')
+        customer_name = data.get('customer_name')
+        auto_fix_script = data.get('auto_fix_script')
+        engineer_name = data.get('engineer_name')
+        context = data.get('context', {})
+        
+        if not error_code or not customer_name:
+            return jsonify({
+                'success': False,
+                'error': 'error_code and customer_name are required'
+            }), 400
+        
+        manager = ApprovalWorkflowManager()
+        result = manager.create_approval_request(
+            error_code,
+            customer_name,
+            auto_fix_script,
+            engineer_name,
+            context
+        )
+        
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/approval/<int:incident_id>/approve', methods=['POST'])
+def approve_request(incident_id):
+    """승인 요청 승인 API"""
+    try:
+        from approval_workflow_manager import ApprovalWorkflowManager
+        
+        data = request.json
+        approved_by = data.get('approved_by', 'System')
+        approval_notes = data.get('approval_notes')
+        execute_immediately = data.get('execute_immediately', True)
+        
+        manager = ApprovalWorkflowManager()
+        result = manager.approve_request(
+            incident_id,
+            approved_by,
+            approval_notes,
+            execute_immediately
+        )
+        
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/approval/<int:incident_id>/reject', methods=['POST'])
+def reject_request(incident_id):
+    """승인 요청 거부 API"""
+    try:
+        from approval_workflow_manager import ApprovalWorkflowManager
+        
+        data = request.json
+        rejected_by = data.get('rejected_by', 'System')
+        rejection_reason = data.get('rejection_reason', 'No reason provided')
+        
+        manager = ApprovalWorkflowManager()
+        result = manager.reject_request(
+            incident_id,
+            rejected_by,
+            rejection_reason
+        )
+        
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/approval/pending', methods=['GET'])
+def get_pending_approvals():
+    """대기 중인 승인 목록 API"""
+    try:
+        from approval_workflow_manager import ApprovalWorkflowManager
+        
+        limit = request.args.get('limit', 50, type=int)
+        
+        manager = ApprovalWorkflowManager()
+        pending = manager.get_pending_approvals(limit=limit)
+        
+        return jsonify({
+            'success': True,
+            'total': len(pending),
+            'approvals': pending
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/approval/<int:incident_id>', methods=['GET'])
+def get_incident_details(incident_id):
+    """Incident 상세 정보 API"""
+    try:
+        from approval_workflow_manager import ApprovalWorkflowManager
+        
+        manager = ApprovalWorkflowManager()
+        details = manager.get_incident_details(incident_id)
+        
+        if details:
+            return jsonify({
+                'success': True,
+                'incident': details
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Incident not found'
+            }), 404
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 # ==================== Auto Recovery APIs ====================
 
 @app.route('/api/recovery/process', methods=['POST'])
